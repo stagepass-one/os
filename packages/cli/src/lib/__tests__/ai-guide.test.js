@@ -50,6 +50,14 @@ describe('buildGuideBody', () => {
     expect(body).not.toContain('not available');
     expect(body).not.toContain('Modules not enabled');
   });
+
+  it('lists unavailable modules even when only one module is disabled', () => {
+    const body = buildGuideBody(['inject', 'cookies']);
+    expect(body).toContain('### Modules not enabled in this project');
+    expect(body).toContain('`sp.maintenance`: not available');
+    expect(body).not.toContain('`sp.inject`: not available');
+    expect(body).not.toContain('`sp.cookies`: not available');
+  });
 });
 
 describe('upsertManagedBlock', () => {

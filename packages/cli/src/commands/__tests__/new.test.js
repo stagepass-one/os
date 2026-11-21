@@ -1696,6 +1696,62 @@ describe('new: origins, php, preflight', () => {
       );
       expect(code).toBe(0);
       expect(runDoctor).toHaveBeenCalled();
+      expect(runDoctor).toHaveBeenCalledWith(
+        expect.objectContaining({ skipHandshake: true, projectChecks: false })
+      );
+      expect(setup).not.toHaveBeenCalled();
+    } finally {
+      await fs.remove(tmp);
+    }
+  });
+
+
+  it('Enter declines setup after a failing doctor preflight (default no)', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-doc-enter-'));
+    const target = path.join(tmp, 'doc-enter');
+    const setup = vi.fn(async () => {});
+    const runDoctor = vi.fn(async () => ({
+      checks: [{ id: 'caddy', status: 'fail', message: 'missing' }],
+      summary: { ok: 0, warn: 0, fail: 1, info: 0 },
+      exitCode: 1,
+      hints: [],
+    }));
+    // setup? (Enter = default no), staging, production, cdn, php, link?
+    const wizardAnswers = ['', 'doc-enter.webflow.io', '', '', 'n', 'n'];
+    const rl = {
+      question: vi.fn(async () => wizardAnswers.shift() ?? ''),
+      close: vi.fn(),
+    };
+    try {
+      const code = await createNew(
+        'doc-enter-app',
+        {
+          dir: target,
+          lang: 'ts',
+          styles: 'scss',
+          modules: false,
+          git: false,
+          install: false,
+          author: 'Ada',
+        },
+        {
+          isTTY: true,
+          argv: ['--no-modules', '--no-git', '--no-install', '--lang', 'ts', '--styles', 'scss'],
+          templatesRoot: defaultTemplatesRoot(),
+          cwd: tmp,
+          log: () => {},
+          error: () => {},
+          exec: async () => ({ stdout: 'Ada' }),
+          spawn: vi.fn(),
+          platform: 'darwin',
+          runDoctor,
+          setup,
+          createReadline: () => rl,
+          link: vi.fn(),
+        }
+      );
+      expect(code).toBe(0);
+      expect(runDoctor).toHaveBeenCalled();
       expect(setup).not.toHaveBeenCalled();
     } finally {
       await fs.remove(tmp);

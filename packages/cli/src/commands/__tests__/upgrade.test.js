@@ -889,3 +889,47 @@ describe('upgrade: snippet version pin (AC-7 / AC-14)', () => {
     expect((await fsx.readJson(path.join(dir, 'stagepass.json'))).cdn).toBe('jsdelivr');
   });
 });
+
+describe('upgrade: change log and TypeScript hint', () => {
+  /** @type {string} */
+  let dir;
+  beforeEach(async () => {
+    dir = await fsx.mkdtemp(path.join(os.tmpdir(), 'sp-upgrade-hints-'));
+  });
+  afterEach(async () => {
+    await fsx.remove(dir);
+  });
+
+  const deps = (logs) => ({
+    cwd: dir,
+    fetchPublished: async () => ({ distTags: { latest: '2.2.0' }, versions: ['2.0.0', '2.2.0'] }),
+    log: (m) => logs.push(String(m ?? '')),
+    isTTY: false,
+    loadProjects: async () => ({ projects: {} }),
+    detectSite: vi.fn(async () => {
+      throw new Error('detectSite must not be called');
+    }),
+  });
+
+  it('logs each @stagepass/* bump when the range changes, and the already-current message when it does not', async () => {
+    await fsx.writeJson(
+      path.join(dir, 'package.json'),
+      { name: 'app', devDependencies: { '@stagepass/loader': '^2.0.0' } },
+      { spaces: 2 }
+    );
+    await fsx.writeJson(path.join(dir, 'stagepass.json'), { name: 'app', modules: [], version: 1 });
+    const logs = [];
+    expect(await upgrade({ skipSite: true, yes: true }, deps(logs))).toBe(0);
+    const out = logs.join('\n');
+    expect(out).toContain('Upgrade @stagepass/* (published versions only)');
+    expect(out).toContain('@stagepass/loader: ^2.0.0 → ^2.2.0 (devDependencies)');
+    expect(out).not.toContain('@stagepass/* already at the newest published ranges.');
+
+    const logs2 = [];
+    expect(await upgrade({ skipSite: true, yes: true }, deps(logs2))).toBe(0);
+    const out2 = logs2.join('\n');
+    expect(out2).toContain('@stagepass/* already at the newest published ranges.');
+    expect(out2).not.toContain('Upgrade @stagepass/* (published versions only)');
+  });
+
+});
