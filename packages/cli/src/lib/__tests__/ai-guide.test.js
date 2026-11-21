@@ -193,6 +193,7 @@ describe('buildStagepassGuide', () => {
     const newsletterLimit = section.match(/'newsletter' => \[[\s\S]*?'rate_limit' => (true|false),/);
     expect(newsletterLimit?.[1]).toBe('true');
     expect(section).toContain('CURLOPT_TIMEOUT');
+    expect(section).toContain('if ($raw === false || $errno !== 0 || $status < 200 || $status >= 300)');
     expect(section).toContain('error_log');
     expect(section).toContain('**MUST**');
     expect(section).toContain('**NEVER**');

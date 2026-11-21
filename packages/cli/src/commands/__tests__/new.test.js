@@ -1159,6 +1159,92 @@ describe('new: declared modules', () => {
     expect(r.config.php).toBe(false);
     expect(rl.question.mock.calls.some((c) => String(c[0]).includes('Enable PHP'))).toBe(true);
   });
+
+  it('wizard: Enter on "Use modules detected on the site" keeps the detected list (default yes)', async () => {
+    const detectSite = vi.fn(async () => ({
+      ok: true,
+      url: 'https://shop.webflow.io/',
+      loader: { version: '2', cdn: 'jsdelivr' },
+      modules: [
+        { id: 'cookies', version: '2', cdn: 'jsdelivr' },
+        { id: 'inject', version: '2', cdn: 'jsdelivr' },
+      ],
+      list: ['cookies', 'inject'],
+    }));
+    const rl = {
+      question: vi.fn(async (q) => {
+        if (/Use modules detected on the site/i.test(String(q))) return '';
+        if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
+        return '';
+      }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        styles: 'scss',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        git: false,
+        install: false,
+        php: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-git', '--no-install', '--no-php'],
+        exec: async () => ({ stdout: '' }),
+        detectSite,
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(true);
+    expect(r.config.siteModules).toEqual(['cookies', 'inject']);
+    expect(detectSite).toHaveBeenCalledWith('shop.webflow.io');
+    expect(rl.question.mock.calls.some((c) => /Use modules detected on the site/i.test(String(c[0])))).toBe(
+      true
+    );
+  });
+
+  it('wizard: Enter on Initialize git keeps git on (default yes)', async () => {
+    const rl = {
+      question: vi.fn(async (q) => {
+        if (/Initialize git repository/i.test(String(q))) return '';
+        if (/Git remote URL/i.test(String(q))) return '';
+        if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
+        return '';
+      }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        styles: 'scss',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        siteModules: 'none',
+        install: false,
+        php: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-install', '--no-php'],
+        exec: async () => ({ stdout: '' }),
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(true);
+    expect(r.config.git).toBe(true);
+    expect(r.config.remote).toBe('');
+    expect(rl.question.mock.calls.some((c) => /Initialize git repository/i.test(String(c[0])))).toBe(true);
+  });
 });
 
 describe('new: origins, php, preflight', () => {
