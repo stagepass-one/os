@@ -35,6 +35,7 @@ describe('normalizeSiteUrl', () => {
     ['*.webflow.io', /./],
     ['', /No live site/],
     ['javascript:alert(1)', /./],
+    ['https://%', /Invalid site URL/],
   ])('rejects %s', (input, re) => {
     const r = normalizeSiteUrl(input);
     expect(r.ok).toBe(false);
@@ -345,5 +346,14 @@ describe('detectSite', () => {
     const r = await detectSite('http://app.com', { fetch });
     expect(r.ok).toBe(false);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when fetch is not a function', async () => {
+    const r = await detectSite('app.com', { fetch: 'missing' });
+    expect(r).toMatchObject({
+      ok: false,
+      url: 'https://app.com/',
+      error: 'fetch is not available in this Node.js version.',
+    });
   });
 });

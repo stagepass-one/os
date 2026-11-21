@@ -71,6 +71,7 @@ describe('registry helpers', () => {
     expect(rangeHasPerModuleTypes(['2.0.0'], '^2')).toBe(false);
     expect(rangeHasPerModuleTypes(['2.0.0', '2.2.0'], '^2')).toBe(true);
     expect(rangeHasPerModuleTypes(['2.0.0', '2.2.0'], '2.0.0')).toBe(false);
+    expect(rangeHasPerModuleTypes(['2.0.0'], '^3')).toBe(false);
     expect(rangeHasPerModuleTypes(null, '^2')).toBeNull();
   });
 

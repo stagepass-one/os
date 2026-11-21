@@ -621,6 +621,59 @@ describe('createNew robustness', () => {
     }
   });
 
+  it('prints the write-error stack only with --verbose', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-verb-'));
+    const marker = 'at verboseProbe (mutation-probe.js:1:1)';
+    const run = async (verbose, dirname) => {
+      const target = path.join(tmp, dirname);
+      const errors = [];
+      let writes = 0;
+      const fse = {
+        ...fs,
+        writeFile: async (p, data, enc) => {
+          writes += 1;
+          if (writes === 3) {
+            const err = new Error('ENOSPC');
+            err.stack = `Error: ENOSPC\n    ${marker}`;
+            throw err;
+          }
+          return fs.writeFile(p, data, enc);
+        },
+      };
+      const code = await createNew(
+        dirname,
+        { yes: true, dir: target, git: false, siteModules: 'none', verbose },
+        {
+          isTTY: false,
+          argv: verbose ? ['--yes', '--no-git', '--verbose'] : ['--yes', '--no-git'],
+          templatesRoot: defaultTemplatesRoot(),
+          cwd: tmp,
+          log: () => {},
+          error: (msg) => errors.push(String(msg)),
+          exec: vi.fn(),
+          spawn: vi.fn(),
+          fs: fse,
+        }
+      );
+      return { code, text: errors.join('\n'), target };
+    };
+    try {
+      const quiet = await run(false, 'verb-quiet');
+      expect(quiet.code).toBe(1);
+      expect(quiet.text).toMatch(/ENOSPC/);
+      expect(quiet.text).not.toContain(marker);
+      expect(await fs.pathExists(quiet.target)).toBe(false);
+
+      const verboseRun = await run(true, 'verb-loud');
+      expect(verboseRun.code).toBe(1);
+      expect(verboseRun.text).toMatch(/ENOSPC/);
+      expect(verboseRun.text).toContain(marker);
+      expect(await fs.pathExists(verboseRun.target)).toBe(false);
+    } finally {
+      await fs.remove(tmp);
+    }
+  });
+
   it('defaults snippets to SNIPPET_LOADER_VERSION', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-ver-'));
     const target = path.join(tmp, 'ver');
@@ -968,6 +1021,41 @@ describe('new: declared modules', () => {
     expect(r.error).toMatch(/Invalid --cdn/i);
     expect(calls).toBeLessThanOrEqual(5);
     expect(rl.close).toHaveBeenCalled();
+  });
+
+  it('wizard: Enter on Enable PHP keeps PHP off (default no)', async () => {
+    const rl = {
+      question: vi.fn(async (q) => {
+        if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
+        if (String(q).includes('Enable PHP')) return '';
+        return '';
+      }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        styles: 'scss',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        siteModules: 'none',
+        git: false,
+        install: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-git', '--no-install'],
+        exec: async () => ({ stdout: '' }),
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(true);
+    expect(r.config.php).toBe(false);
+    expect(rl.question.mock.calls.some((c) => String(c[0]).includes('Enable PHP'))).toBe(true);
   });
 });
 

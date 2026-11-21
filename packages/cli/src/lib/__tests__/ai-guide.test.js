@@ -129,6 +129,19 @@ describe('buildStagepassGuide', () => {
     expect(phpWorkflow).toContain('.php/rate-limit/');
   });
 
+  it('warns that modules types stay on the loader when the dependency is missing, even for a single module', () => {
+    const guide = buildStagepassGuide(
+      guideCtx({
+        modules: ['cookies'],
+        types: ['@stagepass/loader'],
+        modulesDependency: false,
+        configFile: '',
+      })
+    );
+    expect(guide).toContain('@stagepass/modules` is not in `package.json` yet');
+    expect(guide).not.toContain('After enabling a module (Webflow script tag plus `stagepass.json`), run `stagepass upgrade`.');
+  });
+
   it('tells the agent the boilerplate is missing instead of listing helpers', () => {
     const guide = buildStagepassGuide(guideCtx({ php: true, phpBoilerplate: false }));
     expect(guide).toContain('api/lib/');

@@ -376,6 +376,20 @@ describe('readSnippetGitRef with a real git repo', () => {
 });
 
 describe('project README asset URLs', () => {
+  it('uses main when the git branch is the detached HEAD name', () => {
+    const snippets = buildWebflowSnippets({
+      version: '2.5.0',
+      gitRemote: 'https://github.com/acme/widgets.git',
+      gitBranch: 'HEAD',
+      projectName: 'demo',
+    });
+    expect(snippets.assetExampleUrl).toBe(
+      'https://cdn.jsdelivr.net/gh/acme/widgets@main/dist/main.a1b2c3d4.js'
+    );
+    expect(snippets.footer).toContain('https://cdn.jsdelivr.net/gh/acme/widgets@main/dist/main.js');
+    expect(snippets.assetExampleUrl).not.toContain('@HEAD/');
+  });
+
   it('writes a jsDelivr GitHub URL when new has a GitHub remote', async () => {
     const files = await planScaffoldFiles(
       scaffoldOptions({ git: true, remote: 'https://github.com/acme/widgets.git' }),
