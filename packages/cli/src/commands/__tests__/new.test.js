@@ -293,6 +293,7 @@ describe('createNew', () => {
     expect(sp.modules).toEqual(['cookies']);
     expect(sp.origin).toBeUndefined();
     expect(sp.php).toBe(false);
+    expect(sp.cdn).toBe('stagepass');
     expect(await fs.pathExists(path.join(target, 'api'))).toBe(false);
     const buildScript = await fs.readFile(path.join(target, 'scripts/build.mjs'), 'utf8');
     expect(buildScript).toContain('sha384-');

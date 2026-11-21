@@ -44,6 +44,7 @@ import {
 import { loadProjects } from './projects.js';
 import { validateOriginEntry, validateOriginList } from './origins.js';
 import { describeDetection, normalizeSiteUrl, SITE_PORT_ERROR } from './site-detect.js';
+import { normalizeCdnChoice } from './cdn-base.js';
 
 /**
  * Read and parse stagepass.json (null when missing or invalid).
@@ -108,6 +109,17 @@ export function phpFromStagepassConfig(data) {
   if (data.php === true) return true;
   if (data.php === false) return false;
   return undefined;
+}
+
+/**
+ * CDN recorded by `stagepass new` (`stagepass` or `jsdelivr`).
+ * Absent, legacy, and unknown values use the Stagepass CDN.
+ * @param {Record<string, unknown> | null} data
+ * @returns {'stagepass' | 'jsdelivr'}
+ */
+export function cdnFromStagepassConfig(data) {
+  if (!data || typeof data !== 'object') return 'stagepass';
+  return normalizeCdnChoice(data.cdn) || 'stagepass';
 }
 
 /**
@@ -734,6 +746,8 @@ async function isSymlink(abs, fse) {
  * @param {boolean} [input.assumeYes] `--yes`: replace that file without asking
  * @param {(question: string, defYes: boolean) => Promise<boolean>} [input.confirm]
  * @param {boolean} [input.cursorRule] `--cursor-rule`: write the Cursor rule even without `.cursor/`
+ * @param {string} [input.cdn] `stagepass` or `jsdelivr`, same choice as the printed snippets
+ * @param {string} [input.loaderVersion] Sanitized exact loader pin shared with the printed snippets
  * @param {typeof fs} [fse]
  * @returns {Promise<{ writes: { file: string, content: string, action: string }[], notes: string[] }>}
  */
@@ -811,6 +825,8 @@ export async function planProjectSync(input, fse = fs) {
         perModuleTypes,
       }),
       modulesDependency,
+      cdn: input.cdn,
+      loaderVersion: input.loaderVersion,
     })
   );
   if (php && !phpBoilerplate) notes.push(PHP_LIB_MISSING_NOTE);

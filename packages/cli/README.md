@@ -122,7 +122,7 @@ Scaffold a project with flags for every choice (interactive prompts only on a TT
 | `--remote <url>` | Set `origin` after git init (rejects URLs with embedded credentials). |
 | `--cursor-rule` | Write `.cursor/rules/stagepass.mdc` even when the target has no `.cursor/` directory. Without this flag the rule is written only if `.cursor/` already exists. |
 | `--install` / `--no-install` | Run `npm install` (default: no). |
-| `--cdn stagepass\|jsdelivr` | CDN for generated Webflow snippets (default: `stagepass`, exact pins on `https://cdn.stagepass.one`). |
+| `--cdn stagepass\|jsdelivr` | CDN for generated Webflow snippets, stored as `cdn` in `stagepass.json` (default: `stagepass`, exact pins on `https://cdn.stagepass.one`). `stagepass upgrade` reads it back. |
 | `-y, --yes` | Non-interactive; use defaults for omitted flags. |
 | `--dry-run` | Print the file plan without writing. |
 
@@ -200,7 +200,7 @@ Still not recognised: tags without `src`, `data-src` only, other hosts without a
 
 `upgrade` bumps `@stagepass/*` in `package.json`, then resolves the modules list (`--site-modules`, else live detection, confirmed interactively; if the site is unreachable or no origin is known it asks; without a TTY it keeps the existing list or `[]` and prints a hint). It then syncs the project:
 
-- `stagepass.json`: writes the `modules` list.
+- `stagepass.json`: writes the `modules` list. Reads `cdn` (`stagepass` or `jsdelivr`; missing or unknown values use the Stagepass CDN) so `AGENTS.stagepass.md` and the printed snippets share that host and one sanitized loader pin.
 - `AGENTS.stagepass.md`: created when missing. Rewritten when the managed hash still matches and the generated text changed. A hand edit (hash mismatch, or no `stagepass:managed` header) is replaced only with `--yes` or a TTY confirmation (default yes). Without a TTY and without `--yes`, the file stays and the CLI prints a hint that names `--yes`. A second run writes nothing when the file is already current. A symlink is left unchanged.
 - `AGENTS.md`: created if missing (title plus the short pointer). Otherwise only the pointer between the markers is replaced, or appended when there are none. Text outside the markers stays byte for byte, including older generated sections. Upgrade prints a hint when those older sections are still outside the markers. Broken markers are left alone with a hint.
 - `.cursor/rules/stagepass.mdc`: not created unless `.cursor/` already exists or `--cursor-rule` is set. An existing rule is never deleted. With stagepass markers, only the managed block is refreshed (`alwaysApply: true`, pointer to `@AGENTS.stagepass.md`). The previous generated frontmatter (`globs: src/**`, `alwaysApply: false`) is updated when it is still unchanged. A rule without markers is left alone. `stagepass doctor` does not warn about a missing rule when `.cursor/` is absent. When `.cursor/` exists, a missing or stale rule is a warning.

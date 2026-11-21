@@ -10,7 +10,7 @@ import {
   renderStagepassAgentsFile,
 } from './ai-guide.js';
 import { typesForModules } from './project-modules.js';
-import { SNIPPET_LOADER_VERSION } from './cdn-base.js';
+import { SNIPPET_LOADER_VERSION, normalizeCdnChoice } from './cdn-base.js';
 import { LOADER_VERSION, packagesRange } from './versions.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -100,6 +100,7 @@ export function scaffoldPhpTemplateMap(options = {}) {
  * @property {boolean} install
  * @property {boolean} dryRun
  * @property {string} [loaderVersion] @stagepass/loader + modules version (snippets)
+ * @property {'stagepass' | 'jsdelivr'} [cdn] Webflow snippet CDN, stored in stagepass.json
  * @property {string} [packagesRange] Override for package.json ranges (default ^<major>, e.g. ^2)
  * @property {boolean} [perModuleTypes] false: use the umbrella `@stagepass/modules` types (modules < 2.2.0)
  */
@@ -176,6 +177,9 @@ export function buildStagepassExtraLines(options) {
   }
   // Always record php for new projects so link/doctor can tell intentional off from legacy.
   lines.push(`\n  "php": ${options.php === true ? 'true' : 'false'},`);
+  // Same default as snippet generation: missing or unknown values are the Stagepass CDN.
+  const cdn = normalizeCdnChoice(options.cdn) || 'stagepass';
+  lines.push(`\n  "cdn": ${JSON.stringify(cdn)},`);
   return lines.join('');
 }
 

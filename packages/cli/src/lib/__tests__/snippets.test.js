@@ -41,10 +41,16 @@ function scaffoldOptions(extra = {}) {
 }
 
 describe('sanitizeSnippetVersion', () => {
-  it('accepts semver and optional range prefixes', () => {
+  it('accepts an exact semver', () => {
     expect(sanitizeSnippetVersion('2.0.0')).toBe('2.0.0');
-    expect(sanitizeSnippetVersion('^2.1.0')).toBe('^2.1.0');
-    expect(sanitizeSnippetVersion('~2.0.0')).toBe('~2.0.0');
+    expect(sanitizeSnippetVersion(' 2.5.0 ')).toBe('2.5.0');
+    expect(sanitizeSnippetVersion('0.1.0')).toBe('0.1.0');
+  });
+
+  it('rejects ranges, dist-tags, and major aliases', () => {
+    for (const value of ['^2.1.0', '~2.0.0', 'latest', '2', '2.0', '@2', '2.0.0-beta.1', 'v2.0.0']) {
+      expect(() => sanitizeSnippetVersion(value)).toThrow(/Invalid version/);
+    }
   });
 
   it('rejects HTML / quote injection', () => {
@@ -96,6 +102,7 @@ describe('buildWebflowSnippets', () => {
     expect(url2?.[1]).toBe(attr2?.[1]);
 
     expect(() => buildWebflowSnippets({ version: '' })).toThrow(/Invalid version/);
+    expect(() => buildWebflowSnippets({ version: '^2.0.0' })).toThrow(/Invalid version/);
     expect(() => buildWebflowSnippets({ version: '2"><img src=x>' })).toThrow(
       /Invalid version/
     );
@@ -236,7 +243,9 @@ describe('official head snippets', () => {
     expect(cookies).toBeGreaterThan(inject);
     expect(maintenance).toBeGreaterThan(cookies);
     expect(text).toContain(`data-stagepass-version="${SNIPPET_LOADER_VERSION}"`);
-    expect(text).toContain('jsDelivr alternative (major pin @2)');
+    expect(text).toContain(
+      `jsDelivr alternative (major pin @2): <script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="${SNIPPET_LOADER_VERSION}"></script>`
+    );
     expect(text).not.toContain('Webflow Custom Code (Footer):');
     expect(text).not.toContain('all.min.js');
     expect(text).not.toContain('unpkg.com');
@@ -262,7 +271,22 @@ describe('official head snippets', () => {
     expect(snippets.head).toContain(`data-stagepass-version="${SNIPPET_LOADER_VERSION}"`);
     expect(snippets.head).toContain(moduleUrl('cookies'));
     expect(snippets.head).not.toContain('inject.min.js');
-    expect(text).toContain('jsDelivr alternative (major pin @2)');
+    expect(text).toContain(
+      `jsDelivr alternative (major pin @2): <script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="${SNIPPET_LOADER_VERSION}"></script>`
+    );
+  });
+
+  it('puts the same exact pin on the jsDelivr alternative line', () => {
+    const lines = [];
+    const snippets = buildWebflowSnippets({ version: '2.1.0', modules: false });
+    printWebflowSnippets(snippets, (msg) => lines.push(String(msg)));
+    const text = lines.join('\n');
+    expect(text).toContain(
+      'jsDelivr alternative (major pin @2): <script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="2.1.0"></script>'
+    );
+    expect(text).not.toContain('loader@2.1.0/dist/loader.min.js');
+    const pins = [...text.matchAll(/data-stagepass-version="([^"]*)"/g)].map((match) => match[1]);
+    expect(pins).toEqual(['2.1.0', '2.1.0']);
   });
 
   it('prints only the declared module, in inject, cookies, maintenance order', () => {
@@ -436,6 +460,20 @@ describe('project README asset URLs', () => {
     expect(readme).toContain('Replace YOUR-PRODUCTION-URL');
     expect(readme).not.toContain('cdn.example.com');
     expect(readme).not.toContain('cdn.jsdelivr.net/gh/');
+    const sp = JSON.parse(files.find((file) => file.relativePath === 'stagepass.json').contents);
+    expect(sp.cdn).toBe('stagepass');
+    expect(sp.php).toBe(false);
+  });
+
+  it('records jsdelivr in stagepass.json when new selects that CDN', async () => {
+    const files = await planScaffoldFiles(scaffoldOptions({ git: false, cdn: 'jsdelivr' }), {
+      readTemplate,
+    });
+    const sp = JSON.parse(files.find((file) => file.relativePath === 'stagepass.json').contents);
+    expect(sp.cdn).toBe('jsdelivr');
+    const guide = files.find((file) => file.relativePath === 'AGENTS.stagepass.md').contents;
+    expect(guide).toContain('This project uses jsDelivr');
+    expect(guide).toContain('cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js');
   });
 
   it('does not treat a non-GitHub remote as jsDelivr', async () => {

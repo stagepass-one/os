@@ -11,10 +11,11 @@ import { expandModules, normalizeModulesList } from './project-modules.js';
 
 const execFileAsync = promisify(nodeExecFile);
 
-/** Same body as snippet versions, without the optional ^/~ range prefix. */
+/** Owner/repo and similar plain tokens. Version pins use {@link SNIPPET_VERSION_RE}. */
 const SNIPPET_TOKEN_BODY = '[0-9A-Za-z][0-9A-Za-z._+-]*';
-const SNIPPET_VERSION_RE = new RegExp(`^[~^]?${SNIPPET_TOKEN_BODY}$`);
 const SNIPPET_TOKEN_RE = new RegExp(`^${SNIPPET_TOKEN_BODY}$`);
+/** Exact stable semver. Ranges, dist-tags, prerelease, and major aliases are rejected. */
+const SNIPPET_VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 const GITHUB_HTTPS_RE =
   /^https?:\/\/(?:www\.)?github\.com(?::\d+)?\/([^/?#\s]+)\/([^/?#\s]+?)(?:\.git)?\/?(?:[?#].*)?$/i;
@@ -23,7 +24,8 @@ const GITHUB_SSH_URL_RE =
 const GITHUB_SCP_RE = /^git@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i;
 
 /**
- * Safe token for CDN pins and data-stagepass-version (blocks HTML/attr injection).
+ * Exact semver for CDN pins and data-stagepass-version (blocks HTML/attr injection).
+ * Accepts only `x.y.z`. Callers pass a registry-resolved release or `SNIPPET_LOADER_VERSION`.
  * @param {unknown} version
  * @returns {string}
  */
@@ -31,7 +33,7 @@ export function sanitizeSnippetVersion(version) {
   const value = String(version == null ? '' : version).trim();
   if (!SNIPPET_VERSION_RE.test(value)) {
     throw new Error(
-      'Invalid version for Webflow snippets (use a semver or npm dist-tag).'
+      'Invalid version for Webflow snippets (use an exact semver x.y.z).'
     );
   }
   return value;
@@ -286,15 +288,16 @@ async function gitText(cwd, args, exec) {
 }
 
 function logExactPin(log, snippets) {
+  // exactPin is `@` plus the sanitized version already used in the head snippet.
+  const loader = String(snippets?.exactPin || '').replace(/^@/, '') || SNIPPET_LOADER_VERSION;
   if (snippets?.cdn === 'jsdelivr') {
-    const loader = String(snippets?.exactPin || '').replace(/^@/, '') || SNIPPET_LOADER_VERSION;
     log(
       `\nOptional exact pin example (instead of @2): loader @${loader}, modules @${SNIPPET_MODULES_VERSION}.`
     );
     return;
   }
   log(
-    '\njsDelivr alternative (major pin @2): https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js'
+    `\njsDelivr alternative (major pin @2): <script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="${loader}"></script>`
   );
 }
 
