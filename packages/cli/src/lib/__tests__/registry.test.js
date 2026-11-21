@@ -27,6 +27,9 @@ describe('registry helpers', () => {
     expect(satisfiesSimple('2.2.5', '~2.2.0')).toBe(true);
     expect(satisfiesSimple('2.3.0', '~2.2.0')).toBe(false);
     expect(satisfiesSimple('2.2.0', '2.2.0')).toBe(true);
+    expect(satisfiesSimple('2.0.0', '2.0')).toBe(true);
+    expect(satisfiesSimple('2.0.1', '2.0')).toBe(true);
+    expect(satisfiesSimple('2.1.0', '2.0')).toBe(false);
     expect(satisfiesSimple('2.2.0-beta.1', '^2')).toBe(false);
     expect(satisfiesSimple('2.2.0', '>=2')).toBe(false);
     expect(satisfiesSimple('2.9.0+EVILMARK5', '^2')).toBe(false);

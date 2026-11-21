@@ -109,6 +109,41 @@ describe('resolveNewOptions', () => {
     expect(badRemote.ok).toBe(false);
   });
 
+  it('rejects invalid --cdn and honours --cdn jsdelivr under --yes', async () => {
+    const bad = await resolveNewOptions(
+      'shop',
+      { yes: true, cdn: 'nope' },
+      { isTTY: false, argv: ['--yes', '--cdn', 'nope'] }
+    );
+    expect(bad.ok).toBe(false);
+    expect(bad.error).toMatch(/Invalid --cdn: use stagepass \(default\) or jsdelivr\./);
+    expect(bad).not.toHaveProperty('config');
+
+    const jsdelivr = await resolveNewOptions(
+      'shop',
+      { yes: true, cdn: 'jsdelivr', git: false, install: false },
+      { isTTY: false, argv: ['--yes', '--cdn', 'jsdelivr', '--no-git', '--no-install'] }
+    );
+    expect(jsdelivr.ok).toBe(true);
+    expect(jsdelivr.config.cdn).toBe('jsdelivr');
+  });
+
+  it('uses an empty author when git config user.name is unavailable', async () => {
+    const resolved = await resolveNewOptions(
+      'shop',
+      { yes: true, git: false, install: false },
+      {
+        isTTY: false,
+        argv: ['--yes', '--no-git', '--no-install'],
+        exec: async () => {
+          throw new Error('git config failed');
+        },
+      }
+    );
+    expect(resolved.ok).toBe(true);
+    expect(resolved.config.author).toBe('');
+  });
+
   it('rejects remote without git', async () => {
     const resolved = await resolveNewOptions(
       'ok-name',
@@ -1546,6 +1581,98 @@ describe('new: origins, php, preflight', () => {
       expect(link).toHaveBeenCalled();
       expect(await fs.pathExists(path.join(target, 'stagepass.json'))).toBe(true);
       expect(logs.join('\n')).toMatch(/link failed/i);
+    } finally {
+      await fs.remove(tmp);
+    }
+  });
+
+  it('passes verbose:true to setup only when --verbose', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-setupverb-'));
+    const run = async (verbose, dirname) => {
+      const target = path.join(tmp, dirname);
+      const setup = vi.fn(async () => {});
+      const runDoctor = vi.fn(async () => ({
+        checks: [{ id: 'caddy', status: 'fail', message: 'missing' }],
+        summary: { ok: 0, warn: 0, fail: 1, info: 0 },
+        exitCode: 1,
+        hints: [],
+      }));
+      const answers = ['y'];
+      const argv = [
+        '--no-modules',
+        '--no-git',
+        '--no-install',
+        '--no-php',
+        '--no-link',
+        '--lang',
+        'ts',
+        '--styles',
+        'scss',
+        '--site-modules',
+        'none',
+        '--cdn',
+        'stagepass',
+        '--staging',
+        'setup.webflow.io',
+        '--production',
+        'www.example.com',
+      ];
+      if (verbose) argv.push('--verbose');
+      const questions = [];
+      const code = await createNew(
+        dirname,
+        {
+          dir: target,
+          lang: 'ts',
+          styles: 'scss',
+          siteModules: 'none',
+          git: false,
+          install: false,
+          php: false,
+          author: 'Ada',
+          staging: 'setup.webflow.io',
+          production: 'www.example.com',
+          cdn: 'stagepass',
+          link: false,
+          verbose,
+        },
+        {
+          isTTY: true,
+          argv,
+          templatesRoot: defaultTemplatesRoot(),
+          cwd: tmp,
+          log: () => {},
+          error: () => {},
+          exec: async () => ({ stdout: 'Ada' }),
+          spawn: vi.fn(),
+          platform: 'darwin',
+          runDoctor,
+          setup,
+          createReadline: () => ({
+            question: vi.fn(async (q) => {
+              questions.push(String(q));
+              return answers.shift() ?? '';
+            }),
+            close: vi.fn(),
+          }),
+          link: vi.fn(),
+        }
+      );
+      return { code, setup, runDoctor, questions, target };
+    };
+    try {
+      const quiet = await run(false, 'setup-quiet');
+      expect(quiet.code).toBe(0);
+      expect(quiet.runDoctor).toHaveBeenCalled();
+      expect(quiet.setup).toHaveBeenCalledTimes(1);
+      expect(quiet.setup).toHaveBeenCalledWith({ verbose: false });
+      expect(quiet.questions.some((q) => /Run `stagepass setup` now/i.test(q))).toBe(true);
+
+      const verboseRun = await run(true, 'setup-loud');
+      expect(verboseRun.code).toBe(0);
+      expect(verboseRun.runDoctor).toHaveBeenCalled();
+      expect(verboseRun.setup).toHaveBeenCalledTimes(1);
+      expect(verboseRun.setup).toHaveBeenCalledWith({ verbose: true });
     } finally {
       await fs.remove(tmp);
     }
