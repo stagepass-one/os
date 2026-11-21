@@ -1053,9 +1053,52 @@ describe('new: declared modules', () => {
       }
     );
     expect(r.ok).toBe(false);
-    expect(r.error).toMatch(/Invalid --cdn/i);
-    expect(calls).toBeLessThanOrEqual(5);
+    expect(r.error).toBe('Invalid --cdn: use stagepass (default) or jsdelivr.');
+    expect(calls).toBe(5);
     expect(rl.close).toHaveBeenCalled();
+  });
+
+  it('wizard: Language js is kept and any other answer becomes ts', async () => {
+    const run = async (answer) => {
+      const rl = {
+        question: vi.fn(async (q) => {
+          if (/Language \(ts\|js\)/i.test(String(q))) return answer;
+          if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
+          return '';
+        }),
+        close: vi.fn(),
+      };
+      return resolveNewOptions(
+        'shop',
+        {
+          dir: 'shop',
+          author: 'Ada',
+          styles: 'scss',
+          staging: 'shop.webflow.io',
+          production: 'www.example.com',
+          siteModules: 'none',
+          git: false,
+          install: false,
+          php: false,
+        },
+        {
+          isTTY: true,
+          argv: ['--no-git', '--no-install', '--no-php'],
+          exec: async () => ({ stdout: '' }),
+          createReadline: () => rl,
+          log: () => {},
+        }
+      );
+    };
+    const js = await run('js');
+    expect(js.ok).toBe(true);
+    expect(js.config.lang).toBe('js');
+    const ts = await run('ts');
+    expect(ts.ok).toBe(true);
+    expect(ts.config.lang).toBe('ts');
+    const def = await run('');
+    expect(def.ok).toBe(true);
+    expect(def.config.lang).toBe('ts');
   });
 
   it('wizard: Enter on Enable PHP keeps PHP off (default no)', async () => {

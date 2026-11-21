@@ -36,6 +36,9 @@ describe('registry helpers', () => {
     expect(satisfiesSimple('02.1.0', '^2')).toBe(false);
     expect(satisfiesSimple('2.3.4', '^2')).toBe(true);
     expect(compareSemver('2.10.0', '2.9.9')).toBeGreaterThan(0);
+    expect(compareSemver('nope', '2.0.0')).toBe(0);
+    expect(compareSemver('2.0.0', 'nope')).toBe(0);
+    expect(compareSemver('nope', 'also-bad')).toBe(0);
   });
 
   it('maxSatisfying picks the highest published match', () => {

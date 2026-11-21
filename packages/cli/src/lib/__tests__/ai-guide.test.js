@@ -190,6 +190,8 @@ describe('buildStagepassGuide', () => {
     expect(section).toContain('TRUSTED_PROXY_HEADER');
     expect(section).toContain('php-private/');
     expect(section).toContain('api/actions/newsletter.php');
+    const newsletterLimit = section.match(/'newsletter' => \[[\s\S]*?'rate_limit' => (true|false),/);
+    expect(newsletterLimit?.[1]).toBe('true');
     expect(section).toContain('CURLOPT_TIMEOUT');
     expect(section).toContain('error_log');
     expect(section).toContain('**MUST**');
