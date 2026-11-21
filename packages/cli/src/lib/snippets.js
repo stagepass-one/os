@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import {
   SNIPPET_LOADER_VERSION,
   SNIPPET_MODULES_VERSION,
+  defaultSnippetPins,
   stagepassPackageUrl,
 } from './cdn-base.js';
 import { validateProjectName } from './project-name.js';
@@ -10,10 +11,11 @@ import { expandModules, normalizeModulesList } from './project-modules.js';
 
 const execFileAsync = promisify(nodeExecFile);
 
-/** Same body as snippet versions, without the optional ^/~ range prefix. */
+/** Owner/repo and similar plain tokens. Version pins use {@link SNIPPET_VERSION_RE}. */
 const SNIPPET_TOKEN_BODY = '[0-9A-Za-z][0-9A-Za-z._+-]*';
-const SNIPPET_VERSION_RE = new RegExp(`^[~^]?${SNIPPET_TOKEN_BODY}$`);
 const SNIPPET_TOKEN_RE = new RegExp(`^${SNIPPET_TOKEN_BODY}$`);
+/** Exact stable semver. Ranges, dist-tags, prerelease, and major aliases are rejected. */
+const SNIPPET_VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 const GITHUB_HTTPS_RE =
   /^https?:\/\/(?:www\.)?github\.com(?::\d+)?\/([^/?#\s]+)\/([^/?#\s]+?)(?:\.git)?\/?(?:[?#].*)?$/i;
@@ -22,7 +24,8 @@ const GITHUB_SSH_URL_RE =
 const GITHUB_SCP_RE = /^git@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i;
 
 /**
- * Safe token for CDN pins and data-stagepass-version (blocks HTML/attr injection).
+ * Exact semver for CDN pins and data-stagepass-version (blocks HTML/attr injection).
+ * Accepts only `x.y.z`. Callers pass a registry-resolved release or `SNIPPET_LOADER_VERSION`.
  * @param {unknown} version
  * @returns {string}
  */
@@ -30,7 +33,7 @@ export function sanitizeSnippetVersion(version) {
   const value = String(version == null ? '' : version).trim();
   if (!SNIPPET_VERSION_RE.test(value)) {
     throw new Error(
-      'Invalid version for Webflow snippets (use a semver or npm dist-tag).'
+      'Invalid version for Webflow snippets (use an exact semver x.y.z).'
     );
   }
   return value;
@@ -163,19 +166,27 @@ function footerFor(assets) {
 }
 
 /**
- * Build recommended Webflow Custom Code snippets (major pin @2).
+ * Build recommended Webflow Custom Code snippets.
+ * Default host is the Stagepass CDN with exact pins. Pass `cdn: 'jsdelivr'`
+ * for the jsDelivr major pin `@2` alternative.
  *
  * @param {object} options
- * @param {string} options.version Exact package version for data-stagepass-version / docs
+ * @param {string} options.version Exact package version for the Stagepass CDN URL pin and data-stagepass-version
  * @param {boolean} [options.modules] Legacy: true = inject + cookies tags
  * @param {string[]} [options.moduleList] Declared modules (wins over `modules`)
  * @param {string} [options.gitRemote] `origin` URL. GitHub https/ssh becomes a jsDelivr `/gh/` URL.
  * @param {string} [options.gitBranch] Current branch. Missing or unsafe values use `main`.
  * @param {string} [options.projectName] Used in the README placeholder example path.
- * @returns {{ head: string, footer: string, majorPin: string, exactPin: string, assetExampleUrl: string, assetHint: string }}
+ * @param {string} [options.cdn] `stagepass` (default) or `jsdelivr`
+ * @returns {{ head: string, footer: string, majorPin: string, exactPin: string, assetExampleUrl: string, assetHint: string, cdn: string }}
  */
 export function buildWebflowSnippets(options) {
-  const version = sanitizeSnippetVersion(options.version || SNIPPET_LOADER_VERSION);
+  // Fail closed on an explicit unresolvable version (empty or invalid).
+  // Omitted version falls back to the bundled exact pin, used for both the
+  // Stagepass CDN URL and data-stagepass-version (single source of truth).
+  const version = sanitizeSnippetVersion(
+    options.version == null ? SNIPPET_LOADER_VERSION : options.version
+  );
   /** @type {string[]} */
   let moduleFiles = [];
   if (Array.isArray(options.moduleList)) {
@@ -185,31 +196,38 @@ export function buildWebflowSnippets(options) {
   } else if (options.modules === true) {
     moduleFiles = ['inject', 'cookies'];
   }
-  const majorPin = '@2';
+  const pins = defaultSnippetPins(options.cdn, { loaderVersion: version });
+  const loaderPin = pins.loaderPin;
+  const modulesPin = pins.modulesPin;
   const exactPin = `@${version}`;
   const assets = describeProjectAssets(options);
+  const loaderComment =
+    pins.cdn === 'jsdelivr'
+      ? '<!-- Stagepass loader (jsDelivr major pin @2; optional exact pin shown in data-stagepass-version) -->'
+      : '<!-- Stagepass loader (Stagepass CDN, exact pin) -->';
 
   const loaderLines = [
-    '<!-- Stagepass loader (major pin @2; optional exact pin shown in data-stagepass-version) -->',
+    loaderComment,
     '<script',
-    `  src="${stagepassPackageUrl('loader', majorPin, 'loader.min.js')}"`,
+    `  src="${stagepassPackageUrl('loader', loaderPin, 'loader.min.js', { cdn: pins.cdn })}"`,
     `  data-stagepass-version="${version}"`,
     '></script>',
   ];
 
   for (const id of moduleFiles) {
     loaderLines.push(
-      `<script src="${stagepassPackageUrl('modules', majorPin, `${id}.min.js`)}"></script>`
+      `<script src="${stagepassPackageUrl('modules', modulesPin, `${id}.min.js`, { cdn: pins.cdn })}"></script>`
     );
   }
 
   return {
     head: loaderLines.join('\n'),
     footer: footerFor(assets),
-    majorPin,
+    majorPin: loaderPin,
     exactPin,
     assetExampleUrl: assets.exampleJs,
     assetHint: assets.hint,
+    cdn: pins.cdn,
   };
 }
 
@@ -227,6 +245,7 @@ export function buildOfficialHeadSnippets(options = {}) {
   return buildWebflowSnippets({
     version: options.version,
     moduleList: expandModules(parsed.modules),
+    cdn: options.cdn,
   });
 }
 
@@ -269,9 +288,16 @@ async function gitText(cwd, args, exec) {
 }
 
 function logExactPin(log, snippets) {
+  // exactPin is `@` plus the sanitized version already used in the head snippet.
   const loader = String(snippets?.exactPin || '').replace(/^@/, '') || SNIPPET_LOADER_VERSION;
+  if (snippets?.cdn === 'jsdelivr') {
+    log(
+      `\nOptional exact pin example (instead of @2): loader @${loader}, modules @${SNIPPET_MODULES_VERSION}.`
+    );
+    return;
+  }
   log(
-    `\nOptional exact pin example (instead of @2): loader @${loader}, modules @${SNIPPET_MODULES_VERSION}.`
+    `\njsDelivr alternative (major pin @2): <script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="${loader}"></script>`
   );
 }
 

@@ -6,6 +6,7 @@ import {
   buildWebflowSnippets,
   printWebflowSnippets,
   readSnippetGitRef,
+  sanitizeSnippetVersion,
 } from '../lib/snippets.js';
 
 import readline from 'node:readline/promises';
@@ -23,6 +24,7 @@ import {
 import { detectSite, normalizeSiteUrl } from '../lib/site-detect.js';
 import {
   applyProjectSync,
+  cdnFromStagepassConfig,
   phpFromStagepassConfig,
   planProjectSync,
   readStagepassJson,
@@ -220,6 +222,8 @@ export function ensureTypeDevDependencies(pkg, modules, specs) {
  * without asking. When stagepass.json has `"php": true`
  * and the project root has no `.htaccess`, writes the shipped template.
  * It does not copy `api/` when that boilerplate is missing.
+ * `AGENTS.stagepass.md` and the printed Webflow snippets share one sanitized
+ * loader pin and the CDN recorded in `stagepass.json` (`stagepass` when missing).
  *
  * @param {object} [options]
  * @param {boolean} [options.dryRun]
@@ -390,22 +394,8 @@ export async function upgrade(options = {}, deps = {}) {
       fromRegistry != null ? fromRegistry : (await installedHasPerModuleTypes(cwd, fse)) === true;
   }
 
-  const plan = await planProjectSync(
-    {
-      cwd,
-      modules: resolved.modules,
-      origin: options.site ? resolved.origin : null,
-      pkg: next,
-      perModuleTypes,
-      interactive,
-      assumeYes,
-      confirm: confirmFn,
-      cursorRule: options.cursorRule === true,
-    },
-    fse
-  );
-
-  // Refuse an unpublished --version before asking about scripts/build.mjs or writing.
+  // One sanitized pin and one CDN for the guide and the printed snippets.
+  // Refuse an unpublished --version before asking about project files or writing.
   let loaderPub = '@stagepass/loader' in published ? published['@stagepass/loader'] : undefined;
   const getLoaderPub = async () => {
     if (loaderPub !== undefined) return loaderPub;
@@ -426,6 +416,38 @@ export async function upgrade(options = {}, deps = {}) {
     }
     if (t.resolved && satisfiesSimple(t.resolved, PACKAGES_MAJOR_RANGE)) snippetVersion = t.resolved;
   }
+  if (!snippetVersion) {
+    snippetVersion = await resolveSnippetLoaderVersion({
+      published: await getLoaderPub(),
+      cwd,
+      bundled: SNIPPET_LOADER_VERSION,
+      fse,
+    });
+  }
+  try {
+    snippetVersion = sanitizeSnippetVersion(snippetVersion);
+  } catch (err) {
+    log(chalk.red(err instanceof Error ? err.message : String(err)));
+    return 1;
+  }
+  const cdn = cdnFromStagepassConfig(sp.data);
+
+  const plan = await planProjectSync(
+    {
+      cwd,
+      modules: resolved.modules,
+      origin: options.site ? resolved.origin : null,
+      pkg: next,
+      perModuleTypes,
+      interactive,
+      assumeYes,
+      confirm: confirmFn,
+      cursorRule: options.cursorRule === true,
+      cdn,
+      loaderVersion: snippetVersion,
+    },
+    fse
+  );
 
   /** @type {{ action: string, from?: string, content?: string, note?: string }} */
   let buildUpgrade = { action: 'skipped' };
@@ -506,14 +528,6 @@ export async function upgrade(options = {}, deps = {}) {
     );
   }
 
-  if (!snippetVersion) {
-    snippetVersion = await resolveSnippetLoaderVersion({
-      published: await getLoaderPub(),
-      cwd,
-      bundled: SNIPPET_LOADER_VERSION,
-      fse,
-    });
-  }
   let snippets;
   try {
     const readGitRef = deps.readGitRef || readSnippetGitRef;
@@ -524,6 +538,7 @@ export async function upgrade(options = {}, deps = {}) {
       gitRemote: gitRef && gitRef.gitRemote,
       gitBranch: gitRef && gitRef.gitBranch,
       projectName: pkg.name,
+      cdn,
     });
   } catch (err) {
     log(chalk.red(err instanceof Error ? err.message : String(err)));

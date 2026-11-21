@@ -50,6 +50,14 @@ describe('buildGuideBody', () => {
     expect(body).not.toContain('not available');
     expect(body).not.toContain('Modules not enabled');
   });
+
+  it('lists unavailable modules even when only one module is disabled', () => {
+    const body = buildGuideBody(['inject', 'cookies']);
+    expect(body).toContain('### Modules not enabled in this project');
+    expect(body).toContain('`sp.maintenance`: not available');
+    expect(body).not.toContain('`sp.inject`: not available');
+    expect(body).not.toContain('`sp.cookies`: not available');
+  });
 });
 
 describe('upsertManagedBlock', () => {
@@ -129,6 +137,19 @@ describe('buildStagepassGuide', () => {
     expect(phpWorkflow).toContain('.php/rate-limit/');
   });
 
+  it('warns that modules types stay on the loader when the dependency is missing, even for a single module', () => {
+    const guide = buildStagepassGuide(
+      guideCtx({
+        modules: ['cookies'],
+        types: ['@stagepass/loader'],
+        modulesDependency: false,
+        configFile: '',
+      })
+    );
+    expect(guide).toContain('@stagepass/modules` is not in `package.json` yet');
+    expect(guide).not.toContain('After enabling a module (Webflow script tag plus `stagepass.json`), run `stagepass upgrade`.');
+  });
+
   it('tells the agent the boilerplate is missing instead of listing helpers', () => {
     const guide = buildStagepassGuide(guideCtx({ php: true, phpBoilerplate: false }));
     expect(guide).toContain('api/lib/');
@@ -177,7 +198,10 @@ describe('buildStagepassGuide', () => {
     expect(section).toContain('TRUSTED_PROXY_HEADER');
     expect(section).toContain('php-private/');
     expect(section).toContain('api/actions/newsletter.php');
+    const newsletterLimit = section.match(/'newsletter' => \[[\s\S]*?'rate_limit' => (true|false),/);
+    expect(newsletterLimit?.[1]).toBe('true');
     expect(section).toContain('CURLOPT_TIMEOUT');
+    expect(section).toContain('if ($raw === false || $errno !== 0 || $status < 200 || $status >= 300)');
     expect(section).toContain('error_log');
     expect(section).toContain('**MUST**');
     expect(section).toContain('**NEVER**');

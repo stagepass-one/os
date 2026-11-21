@@ -109,6 +109,62 @@ describe('resolveNewOptions', () => {
     expect(badRemote.ok).toBe(false);
   });
 
+  it('rejects invalid --cdn and honours --cdn jsdelivr under --yes', async () => {
+    const bad = await resolveNewOptions(
+      'shop',
+      { yes: true, cdn: 'nope' },
+      { isTTY: false, argv: ['--yes', '--cdn', 'nope'] }
+    );
+    expect(bad.ok).toBe(false);
+    expect(bad.error).toMatch(/Invalid --cdn: use stagepass \(default\) or jsdelivr\./);
+    expect(bad).not.toHaveProperty('config');
+
+    const jsdelivr = await resolveNewOptions(
+      'shop',
+      { yes: true, cdn: 'jsdelivr', git: false, install: false },
+      { isTTY: false, argv: ['--yes', '--cdn', 'jsdelivr', '--no-git', '--no-install'] }
+    );
+    expect(jsdelivr.ok).toBe(true);
+    expect(jsdelivr.config.cdn).toBe('jsdelivr');
+  });
+
+  it('rejects CDN host aliases and an empty --cdn', async () => {
+    for (const cdn of [
+      'cdn.stagepass.one',
+      'stagepass.one',
+      'jsdelivr.net',
+      'cdn.jsdelivr.net',
+      'cdn.jsdelivr.net/npm',
+      '',
+      '  ',
+    ]) {
+      const bad = await resolveNewOptions(
+        'shop',
+        { yes: true, cdn },
+        { isTTY: false, argv: ['--yes', '--cdn', cdn] }
+      );
+      expect(bad.ok).toBe(false);
+      expect(bad.error).toMatch(/Invalid --cdn: use stagepass \(default\) or jsdelivr\./);
+      expect(bad).not.toHaveProperty('config');
+    }
+  });
+
+  it('uses an empty author when git config user.name is unavailable', async () => {
+    const resolved = await resolveNewOptions(
+      'shop',
+      { yes: true, git: false, install: false },
+      {
+        isTTY: false,
+        argv: ['--yes', '--no-git', '--no-install'],
+        exec: async () => {
+          throw new Error('git config failed');
+        },
+      }
+    );
+    expect(resolved.ok).toBe(true);
+    expect(resolved.config.author).toBe('');
+  });
+
   it('rejects remote without git', async () => {
     const resolved = await resolveNewOptions(
       'ok-name',
@@ -237,6 +293,7 @@ describe('createNew', () => {
     expect(sp.modules).toEqual(['cookies']);
     expect(sp.origin).toBeUndefined();
     expect(sp.php).toBe(false);
+    expect(sp.cdn).toBe('stagepass');
     expect(await fs.pathExists(path.join(target, 'api'))).toBe(false);
     const buildScript = await fs.readFile(path.join(target, 'scripts/build.mjs'), 'utf8');
     expect(buildScript).toContain('sha384-');
@@ -251,9 +308,11 @@ describe('createNew', () => {
     expect(pkg.devDependencies.esbuild).toBeTruthy();
 
     const readme = await fs.readFile(path.join(target, 'README.md'), 'utf8');
-    expect(readme).toContain('@stagepass/loader@2');
-    // Resolved loader version (fetchPublished stub: latest 2.2.0), not the CLI version 2.0.0 (AC-14).
+    // F-1: URL pin and data-stagepass-version share the registry-resolved loader (2.2.0),
+    // not the bundled constant 2.5.0 and not the CLI version 2.0.0 (AC-14).
+    expect(readme).toContain('cdn.stagepass.one/loader@2.2.0/loader.min.js');
     expect(readme).toContain('data-stagepass-version="2.2.0"');
+    expect(readme).not.toContain('cdn.stagepass.one/loader@2.5.0/loader.min.js');
     expect(readme).not.toContain('data-stagepass-version="2.0.0"');
     expect(readme).not.toContain('unpkg.com');
 
@@ -263,14 +322,17 @@ describe('createNew', () => {
     expect(agents).not.toContain('sp.cookies.bake');
     expect(agents).not.toContain('## Stagepass feature set');
     const guide = await fs.readFile(path.join(target, 'AGENTS.stagepass.md'), 'utf8');
+    expect(guide).toContain('cdn.stagepass.one/loader@2.2.0/loader.min.js');
+    expect(guide).not.toContain('cdn.stagepass.one/loader@2.5.0/loader.min.js');
     expect(guide).toContain('cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js');
-    expect(guide).toMatch(/unpkg serves the same paths/i);
+    expect(guide).not.toMatch(/unpkg serves the same paths/i);
+    expect(guide).not.toContain('unpkg.com');
     expect(guide).toContain('stagepass:managed');
     expect(guide).toContain('sp.cookies.bake');
     expect(guide).toContain('`sp.inject`: not available');
     expect(guide).toMatch(/Never call `sp\.<module>`/);
     expect(guide).not.toContain('\n## PHP\n');
-    expect(readme).toContain('@stagepass/modules@2/dist/cookies.min.js');
+    expect(readme).toContain('cdn.stagepass.one/modules@2.2.2/cookies.min.js');
     expect(readme).not.toContain('inject.min.js');
 
     expect(exec).toHaveBeenCalledWith('git', ['init'], expect.objectContaining({ cwd: target }));
@@ -619,6 +681,59 @@ describe('createNew robustness', () => {
     }
   });
 
+  it('prints the write-error stack only with --verbose', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-verb-'));
+    const marker = 'at verboseProbe (mutation-probe.js:1:1)';
+    const run = async (verbose, dirname) => {
+      const target = path.join(tmp, dirname);
+      const errors = [];
+      let writes = 0;
+      const fse = {
+        ...fs,
+        writeFile: async (p, data, enc) => {
+          writes += 1;
+          if (writes === 3) {
+            const err = new Error('ENOSPC');
+            err.stack = `Error: ENOSPC\n    ${marker}`;
+            throw err;
+          }
+          return fs.writeFile(p, data, enc);
+        },
+      };
+      const code = await createNew(
+        dirname,
+        { yes: true, dir: target, git: false, siteModules: 'none', verbose },
+        {
+          isTTY: false,
+          argv: verbose ? ['--yes', '--no-git', '--verbose'] : ['--yes', '--no-git'],
+          templatesRoot: defaultTemplatesRoot(),
+          cwd: tmp,
+          log: () => {},
+          error: (msg) => errors.push(String(msg)),
+          exec: vi.fn(),
+          spawn: vi.fn(),
+          fs: fse,
+        }
+      );
+      return { code, text: errors.join('\n'), target };
+    };
+    try {
+      const quiet = await run(false, 'verb-quiet');
+      expect(quiet.code).toBe(1);
+      expect(quiet.text).toMatch(/ENOSPC/);
+      expect(quiet.text).not.toContain(marker);
+      expect(await fs.pathExists(quiet.target)).toBe(false);
+
+      const verboseRun = await run(true, 'verb-loud');
+      expect(verboseRun.code).toBe(1);
+      expect(verboseRun.text).toMatch(/ENOSPC/);
+      expect(verboseRun.text).toContain(marker);
+      expect(await fs.pathExists(verboseRun.target)).toBe(false);
+    } finally {
+      await fs.remove(tmp);
+    }
+  });
+
   it('defaults snippets to SNIPPET_LOADER_VERSION', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-ver-'));
     const target = path.join(tmp, 'ver');
@@ -891,8 +1006,8 @@ describe('new: declared modules', () => {
   });
 
   it('wizard: asks for staging/production, confirms detected modules', async () => {
-    // name, dir, author, lang, styles, staging, production, use detected?, php, git, install
-    const answers = ['shop', 'shop', 'Ada', 'ts', 'scss', 'shop.webflow.io', '', 'y', 'n', 'n', 'y'];
+    // name, dir, author, lang, styles, staging, production, use detected?, cdn, php, git, install
+    const answers = ['shop', 'shop', 'Ada', 'ts', 'scss', 'shop.webflow.io', '', 'y', 'stagepass', 'n', 'n', 'y'];
     const rl = { question: vi.fn(async () => answers.shift() ?? ''), close: vi.fn() };
     const r = await resolveNewOptions(undefined, {}, {
       isTTY: true,
@@ -910,12 +1025,13 @@ describe('new: declared modules', () => {
       install: true,
       php: false,
       productionSkipped: true,
+      cdn: 'stagepass',
     });
   });
 
   it('wizard: unreachable site falls back to asking for the list', async () => {
-    // name, dir, author, lang, styles, staging, production, modules, php, git, install
-    const answers = ['shop', 'shop', 'Ada', 'js', 'css', 'shop.webflow.io', '', 'cookies', 'n', 'n', 'n'];
+    // name, dir, author, lang, styles, staging, production, modules, cdn, php, git, install
+    const answers = ['shop', 'shop', 'Ada', 'js', 'css', 'shop.webflow.io', '', 'cookies', 'stagepass', 'n', 'n', 'n'];
     const rl = { question: vi.fn(async () => answers.shift() ?? ''), close: vi.fn() };
     const detectSite = vi.fn(async () => ({ ok: false, error: 'Site did not answer within 5 s.' }));
     const r = await resolveNewOptions(undefined, {}, {
@@ -927,6 +1043,208 @@ describe('new: declared modules', () => {
       log: () => {},
     });
     expect(r.config.siteModules).toEqual(['cookies']);
+  });
+
+  it('wizard: invalid CDN answers fail closed instead of looping', async () => {
+    let calls = 0;
+    const rl = {
+      question: vi.fn(async () => {
+        calls += 1;
+        if (calls > 20) throw new Error('CDN prompt looped');
+        return 'nope';
+      }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        styles: 'scss',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        siteModules: 'none',
+        git: false,
+        install: false,
+        php: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-git', '--no-install', '--no-php'],
+        exec: async () => ({ stdout: '' }),
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('Invalid --cdn: use stagepass (default) or jsdelivr.');
+    expect(calls).toBe(5);
+    expect(rl.close).toHaveBeenCalled();
+  });
+
+  it('wizard: Language js is kept and any other answer becomes ts', async () => {
+    const run = async (answer) => {
+      const rl = {
+        question: vi.fn(async (q) => {
+          if (/Language \(ts\|js\)/i.test(String(q))) return answer;
+          if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
+          return '';
+        }),
+        close: vi.fn(),
+      };
+      return resolveNewOptions(
+        'shop',
+        {
+          dir: 'shop',
+          author: 'Ada',
+          styles: 'scss',
+          staging: 'shop.webflow.io',
+          production: 'www.example.com',
+          siteModules: 'none',
+          git: false,
+          install: false,
+          php: false,
+        },
+        {
+          isTTY: true,
+          argv: ['--no-git', '--no-install', '--no-php'],
+          exec: async () => ({ stdout: '' }),
+          createReadline: () => rl,
+          log: () => {},
+        }
+      );
+    };
+    const js = await run('js');
+    expect(js.ok).toBe(true);
+    expect(js.config.lang).toBe('js');
+    const ts = await run('ts');
+    expect(ts.ok).toBe(true);
+    expect(ts.config.lang).toBe('ts');
+    const def = await run('');
+    expect(def.ok).toBe(true);
+    expect(def.config.lang).toBe('ts');
+  });
+
+  it('wizard: Enter on Enable PHP keeps PHP off (default no)', async () => {
+    const rl = {
+      question: vi.fn(async (q) => {
+        if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
+        if (String(q).includes('Enable PHP')) return '';
+        return '';
+      }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        styles: 'scss',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        siteModules: 'none',
+        git: false,
+        install: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-git', '--no-install'],
+        exec: async () => ({ stdout: '' }),
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(true);
+    expect(r.config.php).toBe(false);
+    expect(rl.question.mock.calls.some((c) => String(c[0]).includes('Enable PHP'))).toBe(true);
+  });
+
+  it('wizard: Enter on "Use modules detected on the site" keeps the detected list (default yes)', async () => {
+    const detectSite = vi.fn(async () => ({
+      ok: true,
+      url: 'https://shop.webflow.io/',
+      loader: { version: '2', cdn: 'jsdelivr' },
+      modules: [
+        { id: 'cookies', version: '2', cdn: 'jsdelivr' },
+        { id: 'inject', version: '2', cdn: 'jsdelivr' },
+      ],
+      list: ['cookies', 'inject'],
+    }));
+    const rl = {
+      question: vi.fn(async (q) => {
+        if (/Use modules detected on the site/i.test(String(q))) return '';
+        if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
+        return '';
+      }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        styles: 'scss',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        git: false,
+        install: false,
+        php: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-git', '--no-install', '--no-php'],
+        exec: async () => ({ stdout: '' }),
+        detectSite,
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(true);
+    expect(r.config.siteModules).toEqual(['cookies', 'inject']);
+    expect(detectSite).toHaveBeenCalledWith('shop.webflow.io');
+    expect(rl.question.mock.calls.some((c) => /Use modules detected on the site/i.test(String(c[0])))).toBe(
+      true
+    );
+  });
+
+  it('wizard: Enter on Initialize git keeps git on (default yes)', async () => {
+    const rl = {
+      question: vi.fn(async (q) => {
+        if (/Initialize git repository/i.test(String(q))) return '';
+        if (/Git remote URL/i.test(String(q))) return '';
+        if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
+        return '';
+      }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        styles: 'scss',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        siteModules: 'none',
+        install: false,
+        php: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-install', '--no-php'],
+        exec: async () => ({ stdout: '' }),
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(true);
+    expect(r.config.git).toBe(true);
+    expect(r.config.remote).toBe('');
+    expect(rl.question.mock.calls.some((c) => /Initialize git repository/i.test(String(c[0])))).toBe(true);
   });
 });
 
@@ -1290,7 +1608,8 @@ describe('new: origins, php, preflight', () => {
       hints: [],
     }));
     const setup = vi.fn();
-    const wizardAnswers = ['ok.webflow.io', '', 'n', 'n'];
+    // staging, production, cdn, php, link?
+    const wizardAnswers = ['ok.webflow.io', '', '', 'n', 'n'];
     try {
       const code = await createNew(
         'ok-pre',
@@ -1341,8 +1660,8 @@ describe('new: origins, php, preflight', () => {
       exitCode: 1,
       hints: [],
     }));
-    // setup?, staging, production, php, link?
-    const wizardAnswers = ['n', 'doc.webflow.io', '', 'n', 'n'];
+    // setup?, staging, production, cdn, php, link?
+    const wizardAnswers = ['n', 'doc.webflow.io', '', '', 'n', 'n'];
     const rl = {
       question: vi.fn(async () => wizardAnswers.shift() ?? ''),
       close: vi.fn(),
@@ -1350,6 +1669,62 @@ describe('new: origins, php, preflight', () => {
     try {
       const code = await createNew(
         'doc-app',
+        {
+          dir: target,
+          lang: 'ts',
+          styles: 'scss',
+          modules: false,
+          git: false,
+          install: false,
+          author: 'Ada',
+        },
+        {
+          isTTY: true,
+          argv: ['--no-modules', '--no-git', '--no-install', '--lang', 'ts', '--styles', 'scss'],
+          templatesRoot: defaultTemplatesRoot(),
+          cwd: tmp,
+          log: () => {},
+          error: () => {},
+          exec: async () => ({ stdout: 'Ada' }),
+          spawn: vi.fn(),
+          platform: 'darwin',
+          runDoctor,
+          setup,
+          createReadline: () => rl,
+          link: vi.fn(),
+        }
+      );
+      expect(code).toBe(0);
+      expect(runDoctor).toHaveBeenCalled();
+      expect(runDoctor).toHaveBeenCalledWith(
+        expect.objectContaining({ skipHandshake: true, projectChecks: false })
+      );
+      expect(setup).not.toHaveBeenCalled();
+    } finally {
+      await fs.remove(tmp);
+    }
+  });
+
+
+  it('Enter declines setup after a failing doctor preflight (default no)', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-doc-enter-'));
+    const target = path.join(tmp, 'doc-enter');
+    const setup = vi.fn(async () => {});
+    const runDoctor = vi.fn(async () => ({
+      checks: [{ id: 'caddy', status: 'fail', message: 'missing' }],
+      summary: { ok: 0, warn: 0, fail: 1, info: 0 },
+      exitCode: 1,
+      hints: [],
+    }));
+    // setup? (Enter = default no), staging, production, cdn, php, link?
+    const wizardAnswers = ['', 'doc-enter.webflow.io', '', '', 'n', 'n'];
+    const rl = {
+      question: vi.fn(async () => wizardAnswers.shift() ?? ''),
+      close: vi.fn(),
+    };
+    try {
+      const code = await createNew(
+        'doc-enter-app',
         {
           dir: target,
           lang: 'ts',
@@ -1416,6 +1791,98 @@ describe('new: origins, php, preflight', () => {
       expect(link).toHaveBeenCalled();
       expect(await fs.pathExists(path.join(target, 'stagepass.json'))).toBe(true);
       expect(logs.join('\n')).toMatch(/link failed/i);
+    } finally {
+      await fs.remove(tmp);
+    }
+  });
+
+  it('passes verbose:true to setup only when --verbose', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-setupverb-'));
+    const run = async (verbose, dirname) => {
+      const target = path.join(tmp, dirname);
+      const setup = vi.fn(async () => {});
+      const runDoctor = vi.fn(async () => ({
+        checks: [{ id: 'caddy', status: 'fail', message: 'missing' }],
+        summary: { ok: 0, warn: 0, fail: 1, info: 0 },
+        exitCode: 1,
+        hints: [],
+      }));
+      const answers = ['y'];
+      const argv = [
+        '--no-modules',
+        '--no-git',
+        '--no-install',
+        '--no-php',
+        '--no-link',
+        '--lang',
+        'ts',
+        '--styles',
+        'scss',
+        '--site-modules',
+        'none',
+        '--cdn',
+        'stagepass',
+        '--staging',
+        'setup.webflow.io',
+        '--production',
+        'www.example.com',
+      ];
+      if (verbose) argv.push('--verbose');
+      const questions = [];
+      const code = await createNew(
+        dirname,
+        {
+          dir: target,
+          lang: 'ts',
+          styles: 'scss',
+          siteModules: 'none',
+          git: false,
+          install: false,
+          php: false,
+          author: 'Ada',
+          staging: 'setup.webflow.io',
+          production: 'www.example.com',
+          cdn: 'stagepass',
+          link: false,
+          verbose,
+        },
+        {
+          isTTY: true,
+          argv,
+          templatesRoot: defaultTemplatesRoot(),
+          cwd: tmp,
+          log: () => {},
+          error: () => {},
+          exec: async () => ({ stdout: 'Ada' }),
+          spawn: vi.fn(),
+          platform: 'darwin',
+          runDoctor,
+          setup,
+          createReadline: () => ({
+            question: vi.fn(async (q) => {
+              questions.push(String(q));
+              return answers.shift() ?? '';
+            }),
+            close: vi.fn(),
+          }),
+          link: vi.fn(),
+        }
+      );
+      return { code, setup, runDoctor, questions, target };
+    };
+    try {
+      const quiet = await run(false, 'setup-quiet');
+      expect(quiet.code).toBe(0);
+      expect(quiet.runDoctor).toHaveBeenCalled();
+      expect(quiet.setup).toHaveBeenCalledTimes(1);
+      expect(quiet.setup).toHaveBeenCalledWith({ verbose: false });
+      expect(quiet.questions.some((q) => /Run `stagepass setup` now/i.test(q))).toBe(true);
+
+      const verboseRun = await run(true, 'setup-loud');
+      expect(verboseRun.code).toBe(0);
+      expect(verboseRun.runDoctor).toHaveBeenCalled();
+      expect(verboseRun.setup).toHaveBeenCalledTimes(1);
+      expect(verboseRun.setup).toHaveBeenCalledWith({ verbose: true });
     } finally {
       await fs.remove(tmp);
     }
@@ -1550,6 +2017,7 @@ describe('new: origins, php, preflight', () => {
           createReadline: () => ({
             question: vi.fn(async (q) => {
               questions.push(String(q));
+              if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
               return 'n';
             }),
             close: vi.fn(),
@@ -1614,6 +2082,7 @@ describe('new: origins, php, preflight', () => {
           createReadline: () => ({
             question: vi.fn(async (q) => {
               questions.push(String(q));
+              if (/CDN for Webflow|stagepass \| jsdelivr/i.test(String(q))) return '';
               return 'n';
             }),
             close: vi.fn(),

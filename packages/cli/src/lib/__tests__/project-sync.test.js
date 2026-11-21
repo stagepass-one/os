@@ -4,11 +4,13 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import {
   applyProjectSync,
+  cdnFromStagepassConfig,
   declaredModules,
   originsFromStagepassConfig,
   phpFromStagepassConfig,
   configCoversTypesFile,
   planProjectSync,
+  readStagepassJson,
   renderStagepassTypesFile,
   resolveProjectOrigin,
   resolveUpgradeModules,
@@ -97,6 +99,18 @@ describe('planProjectSync / applyProjectSync', () => {
     const guide = plan.writes.find((w) => w.file === 'AGENTS.stagepass.md').content;
     expect(guide).toContain('stagepass:managed');
     expect(guide).not.toContain('\n## PHP\n');
+
+    const pinned = await planProjectSync({
+      cwd: dir,
+      modules: [],
+      pkg: { name: 'demo' },
+      cdn: 'jsdelivr',
+      loaderVersion: '2.4.0',
+    });
+    const pinnedGuide = pinned.writes.find((w) => w.file === 'AGENTS.stagepass.md').content;
+    expect(pinnedGuide).toContain('cdn.stagepass.one/loader@2.4.0/loader.min.js');
+    expect(pinnedGuide).toContain('This project uses jsDelivr');
+    expect(pinnedGuide).not.toContain('cdn.stagepass.one/loader@2.5.0/');
     expect(plan.writes.find((w) => w.file === 'stagepass.d.ts').content).toBe(renderStagepassTypesFile(['@stagepass/loader']));
     expect(plan.writes.find((w) => w.file === 'stagepass.d.ts').content).toContain(STAGEPASS_TYPES_MARKER);
     expect(plan.notes.join('\n')).toContain('No tsconfig.json or jsconfig.json:');
@@ -351,7 +365,7 @@ describe('planProjectSync / applyProjectSync', () => {
   });
 });
 
-describe('originsFromStagepassConfig / phpFromStagepassConfig', () => {
+describe('originsFromStagepassConfig / phpFromStagepassConfig / cdnFromStagepassConfig', () => {
   it('collects origin and production hosts', () => {
     expect(
       originsFromStagepassConfig({
@@ -369,6 +383,13 @@ describe('originsFromStagepassConfig / phpFromStagepassConfig', () => {
     expect(phpFromStagepassConfig({ php: false })).toBe(false);
     expect(phpFromStagepassConfig({ php: true })).toBe(true);
     expect(phpFromStagepassConfig({})).toBeUndefined();
+    expect(cdnFromStagepassConfig(null)).toBe('stagepass');
+    expect(cdnFromStagepassConfig({})).toBe('stagepass');
+    expect(cdnFromStagepassConfig({ cdn: 'stagepass' })).toBe('stagepass');
+    expect(cdnFromStagepassConfig({ cdn: 'jsdelivr' })).toBe('jsdelivr');
+    expect(cdnFromStagepassConfig({ cdn: 'JSDelivr' })).toBe('jsdelivr');
+    expect(cdnFromStagepassConfig({ cdn: 'unpkg' })).toBe('stagepass');
+    expect(cdnFromStagepassConfig({ cdn: '' })).toBe('stagepass');
   });
 });
 
@@ -504,4 +525,53 @@ describe('resolveUpgradeModules precedence', () => {
     expect(r).toMatchObject({ ok: true, modules: ['maintenance'], source: 'confirmed' });
     expect(ask).toHaveBeenCalledTimes(2);
   });
+});
+
+describe('readStagepassJson', () => {
+  /** @type {string} */
+  let dir;
+  beforeEach(async () => {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-read-spjson-'));
+  });
+  afterEach(async () => {
+    await fs.remove(dir);
+  });
+
+  it('returns exists:false when the file is missing', async () => {
+    expect(await readStagepassJson(dir)).toEqual({ exists: false, data: null, raw: '' });
+  });
+
+  it('returns parsed data for a JSON object', async () => {
+    const data = { name: 'app', modules: ['cookies'], version: 1 };
+    await fs.writeJson(path.join(dir, 'stagepass.json'), data);
+    const r = await readStagepassJson(dir);
+    expect(r.exists).toBe(true);
+    expect(r.data).toEqual(data);
+    expect(r.error).toBeUndefined();
+  });
+
+  it('rejects invalid JSON with a stable error (does not return undefined)', async () => {
+    await fs.writeFile(path.join(dir, 'stagepass.json'), '{ not json');
+    const r = await readStagepassJson(dir);
+    expect(r).toEqual({
+      exists: true,
+      data: null,
+      raw: '{ not json',
+      error: 'stagepass.json is not valid JSON.',
+    });
+  });
+
+  it.each([['null'], ['[]'], ['1'], ['"hello"']])(
+    'rejects non-object JSON %s with a stable error',
+    async (raw) => {
+      await fs.writeFile(path.join(dir, 'stagepass.json'), raw);
+      const r = await readStagepassJson(dir);
+      expect(r).toEqual({
+        exists: true,
+        data: null,
+        raw,
+        error: 'stagepass.json is not a JSON object.',
+      });
+    }
+  );
 });

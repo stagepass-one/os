@@ -101,6 +101,21 @@ describe('createProgram scaffold commands (commander)', () => {
     ]);
   });
 
+  it('does not rewrite a root --version that sits immediately before upgrade', () => {
+    expect(rewriteArgvForUpgrade(['node', 'stagepass', '--version', 'upgrade'])).toEqual([
+      'node',
+      'stagepass',
+      '--version',
+      'upgrade',
+    ]);
+  });
+
+  it('does not treat a non-version upgrade flag with a value as --target', () => {
+    expect(
+      rewriteArgvForUpgrade(['node', 'stagepass', 'upgrade', '--dry-run', '2.1.0'])
+    ).toEqual(['node', 'stagepass', 'upgrade', '--dry-run', '2.1.0']);
+  });
+
   it('parses new flags including negations', () => {
     let captured;
     const program = createProgram({
