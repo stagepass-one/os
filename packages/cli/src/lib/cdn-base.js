@@ -25,32 +25,20 @@ export const SNIPPET_MAJOR_PIN = '@2';
  */
 export function normalizeCdnChoice(raw) {
   const v = String(raw == null ? '' : raw).trim().toLowerCase();
-  if (
-    v === '' ||
-    v === 'stagepass' ||
-    v === 'cdn.stagepass.one' ||
-    v === 'stagepass.one'
-  ) {
-    return 'stagepass';
-  }
-  if (
-    v === 'jsdelivr' ||
-    v === 'jsdelivr.net' ||
-    v === 'cdn.jsdelivr.net' ||
-    v === 'cdn.jsdelivr.net/npm'
-  ) {
-    return 'jsdelivr';
-  }
+  if (v === 'stagepass') return 'stagepass';
+  if (v === 'jsdelivr') return 'jsdelivr';
   return null;
 }
 
 /**
  * Pins used in generated Webflow snippets for a CDN host.
- * Stagepass CDN uses exact pins; jsDelivr keeps the major pin `@2`.
+ * Stagepass CDN uses exact pins from the resolved loader version (the same
+ * value as `data-stagepass-version`). jsDelivr keeps the major pin `@2`.
  * @param {unknown} [cdn]
+ * @param {{ loaderVersion?: string, modulesVersion?: string }} [options]
  * @returns {{ cdn: 'stagepass' | 'jsdelivr', loaderPin: string, modulesPin: string }}
  */
-export function defaultSnippetPins(cdn) {
+export function defaultSnippetPins(cdn, options = {}) {
   const host = normalizeCdnChoice(cdn) || 'stagepass';
   if (host === 'jsdelivr') {
     return {
@@ -59,10 +47,12 @@ export function defaultSnippetPins(cdn) {
       modulesPin: SNIPPET_MAJOR_PIN,
     };
   }
+  const loaderVersion = options.loaderVersion || SNIPPET_LOADER_VERSION;
+  const modulesVersion = options.modulesVersion || SNIPPET_MODULES_VERSION;
   return {
     cdn: host,
-    loaderPin: `@${SNIPPET_LOADER_VERSION}`,
-    modulesPin: `@${SNIPPET_MODULES_VERSION}`,
+    loaderPin: `@${loaderVersion}`,
+    modulesPin: `@${modulesVersion}`,
   };
 }
 

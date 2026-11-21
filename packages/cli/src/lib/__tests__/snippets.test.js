@@ -58,9 +58,7 @@ describe('sanitizeSnippetVersion', () => {
 describe('buildWebflowSnippets', () => {
   it('uses the Stagepass CDN with exact pins by default', () => {
     const withModules = buildWebflowSnippets({ version: '2.0.0', modules: true });
-    expect(withModules.head).toContain(
-      `cdn.stagepass.one/loader@${SNIPPET_LOADER_VERSION}/loader.min.js`
-    );
+    expect(withModules.head).toContain('cdn.stagepass.one/loader@2.0.0/loader.min.js');
     expect(withModules.head).toContain(
       `cdn.stagepass.one/modules@${SNIPPET_MODULES_VERSION}/inject.min.js`
     );
@@ -76,7 +74,30 @@ describe('buildWebflowSnippets', () => {
     expect(without.head).not.toContain('/modules@');
     expect(STAGEPASS_PACKAGE_CDN).toBe('https://cdn.stagepass.one');
     expect(withModules.head).toContain(
-      stagepassPackageUrl('loader', `@${SNIPPET_LOADER_VERSION}`, 'loader.min.js')
+      stagepassPackageUrl('loader', '@2.0.0', 'loader.min.js')
+    );
+  });
+
+  it('keeps the Stagepass CDN URL pin equal to data-stagepass-version', () => {
+    const version = '2.6.0';
+    const snippets = buildWebflowSnippets({ version, modules: false });
+    const attr = snippets.head.match(/data-stagepass-version="([^"]*)"/);
+    const url = snippets.head.match(/cdn\.stagepass\.one\/loader@([^/]+)\//);
+    expect(attr?.[1]).toBe(version);
+    expect(url?.[1]).toBe(version);
+    expect(attr?.[1]).toBe(url?.[1]);
+    expect(snippets.head).not.toContain(`loader@${SNIPPET_LOADER_VERSION}/`);
+    expect(snippets.exactPin).toBe(`@${version}`);
+
+    const fallback = buildWebflowSnippets({ modules: false });
+    const attr2 = fallback.head.match(/data-stagepass-version="([^"]*)"/);
+    const url2 = fallback.head.match(/cdn\.stagepass\.one\/loader@([^/]+)\//);
+    expect(attr2?.[1]).toBe(SNIPPET_LOADER_VERSION);
+    expect(url2?.[1]).toBe(attr2?.[1]);
+
+    expect(() => buildWebflowSnippets({ version: '' })).toThrow(/Invalid version/);
+    expect(() => buildWebflowSnippets({ version: '2"><img src=x>' })).toThrow(
+      /Invalid version/
     );
   });
 
@@ -92,6 +113,7 @@ describe('buildWebflowSnippets', () => {
     expect(withModules.head).toContain(
       stagepassPackageUrl('loader', '@2', 'loader.min.js', { cdn: 'jsdelivr' })
     );
+    expect(withModules.head).toContain('data-stagepass-version="2.0.0"');
     expect(withModules.head).not.toContain('cdn.stagepass.one');
     expect(withModules.head).not.toContain('unpkg.com');
   });

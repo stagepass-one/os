@@ -128,6 +128,27 @@ describe('resolveNewOptions', () => {
     expect(jsdelivr.config.cdn).toBe('jsdelivr');
   });
 
+  it('rejects CDN host aliases and an empty --cdn', async () => {
+    for (const cdn of [
+      'cdn.stagepass.one',
+      'stagepass.one',
+      'jsdelivr.net',
+      'cdn.jsdelivr.net',
+      'cdn.jsdelivr.net/npm',
+      '',
+      '  ',
+    ]) {
+      const bad = await resolveNewOptions(
+        'shop',
+        { yes: true, cdn },
+        { isTTY: false, argv: ['--yes', '--cdn', cdn] }
+      );
+      expect(bad.ok).toBe(false);
+      expect(bad.error).toMatch(/Invalid --cdn: use stagepass \(default\) or jsdelivr\./);
+      expect(bad).not.toHaveProperty('config');
+    }
+  });
+
   it('uses an empty author when git config user.name is unavailable', async () => {
     const resolved = await resolveNewOptions(
       'shop',
@@ -286,9 +307,11 @@ describe('createNew', () => {
     expect(pkg.devDependencies.esbuild).toBeTruthy();
 
     const readme = await fs.readFile(path.join(target, 'README.md'), 'utf8');
-    expect(readme).toContain('cdn.stagepass.one/loader@2.5.0/loader.min.js');
-    // Resolved loader version (fetchPublished stub: latest 2.2.0), not the CLI version 2.0.0 (AC-14).
+    // F-1: URL pin and data-stagepass-version share the registry-resolved loader (2.2.0),
+    // not the bundled constant 2.5.0 and not the CLI version 2.0.0 (AC-14).
+    expect(readme).toContain('cdn.stagepass.one/loader@2.2.0/loader.min.js');
     expect(readme).toContain('data-stagepass-version="2.2.0"');
+    expect(readme).not.toContain('cdn.stagepass.one/loader@2.5.0/loader.min.js');
     expect(readme).not.toContain('data-stagepass-version="2.0.0"');
     expect(readme).not.toContain('unpkg.com');
 
@@ -298,7 +321,8 @@ describe('createNew', () => {
     expect(agents).not.toContain('sp.cookies.bake');
     expect(agents).not.toContain('## Stagepass feature set');
     const guide = await fs.readFile(path.join(target, 'AGENTS.stagepass.md'), 'utf8');
-    expect(guide).toContain('cdn.stagepass.one/loader@2.5.0/loader.min.js');
+    expect(guide).toContain('cdn.stagepass.one/loader@2.2.0/loader.min.js');
+    expect(guide).not.toContain('cdn.stagepass.one/loader@2.5.0/loader.min.js');
     expect(guide).toContain('cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js');
     expect(guide).not.toMatch(/unpkg serves the same paths/i);
     expect(guide).not.toContain('unpkg.com');

@@ -183,7 +183,7 @@ export async function resolveNewOptions(nameArg, options = {}, deps = {}) {
 
   /** @type {string} */
   let cdn = '';
-  if (options.cdn != null && String(options.cdn).trim() !== '') {
+  if (options.cdn != null) {
     const parsed = normalizeCdnChoice(options.cdn);
     if (!parsed) {
       return {

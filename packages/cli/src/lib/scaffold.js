@@ -294,6 +294,8 @@ export async function planScaffoldFiles(options, deps = {}) {
         configFile,
         types,
         modulesDependency: options.modules === true,
+        cdn: options.cdn,
+        loaderVersion: version,
       })
     ),
   });

@@ -169,7 +169,7 @@ function footerFor(assets) {
  * for the jsDelivr major pin `@2` alternative.
  *
  * @param {object} options
- * @param {string} options.version Exact package version for data-stagepass-version / docs
+ * @param {string} options.version Exact package version for the Stagepass CDN URL pin and data-stagepass-version
  * @param {boolean} [options.modules] Legacy: true = inject + cookies tags
  * @param {string[]} [options.moduleList] Declared modules (wins over `modules`)
  * @param {string} [options.gitRemote] `origin` URL. GitHub https/ssh becomes a jsDelivr `/gh/` URL.
@@ -179,7 +179,12 @@ function footerFor(assets) {
  * @returns {{ head: string, footer: string, majorPin: string, exactPin: string, assetExampleUrl: string, assetHint: string, cdn: string }}
  */
 export function buildWebflowSnippets(options) {
-  const version = sanitizeSnippetVersion(options.version || SNIPPET_LOADER_VERSION);
+  // Fail closed on an explicit unresolvable version (empty or invalid).
+  // Omitted version falls back to the bundled exact pin, used for both the
+  // Stagepass CDN URL and data-stagepass-version (single source of truth).
+  const version = sanitizeSnippetVersion(
+    options.version == null ? SNIPPET_LOADER_VERSION : options.version
+  );
   /** @type {string[]} */
   let moduleFiles = [];
   if (Array.isArray(options.moduleList)) {
@@ -189,7 +194,7 @@ export function buildWebflowSnippets(options) {
   } else if (options.modules === true) {
     moduleFiles = ['inject', 'cookies'];
   }
-  const pins = defaultSnippetPins(options.cdn);
+  const pins = defaultSnippetPins(options.cdn, { loaderVersion: version });
   const loaderPin = pins.loaderPin;
   const modulesPin = pins.modulesPin;
   const exactPin = `@${version}`;

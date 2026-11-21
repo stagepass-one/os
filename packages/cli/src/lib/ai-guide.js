@@ -11,6 +11,12 @@ import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { MODULE_IDS, expandModules, formatModules } from './project-modules.js';
 import { LOADER_VERSION, MODULES_VERSION } from './versions.js';
+import {
+  SNIPPET_LOADER_VERSION,
+  SNIPPET_MODULES_VERSION,
+  normalizeCdnChoice,
+  stagepassPackageUrl,
+} from './cdn-base.js';
 
 const require = createRequire(import.meta.url);
 export const CLI_VERSION = require('../../package.json').version;
@@ -85,7 +91,7 @@ if (sp.can('localStorage')) localStorage.setItem('seen', '1');
 const MODULE_SECTIONS = {
   inject: `### Module: inject (\`sp.inject\`)
 
-Loads extra scripts and stylesheets. Webflow script tag: \`https://cdn.stagepass.one/modules@2.2.2/inject.min.js\` after \`loader.min.js\`.
+Loads extra scripts and stylesheets. Webflow script tag: \`https://cdn.stagepass.one/modules@${SNIPPET_MODULES_VERSION}/inject.min.js\` after \`loader.min.js\`.
 
 \`\`\`ts
 if (sp.inject) {
@@ -99,7 +105,7 @@ Argument: one options object, an array of them, or \`{ scripts?, styles? }\`. Re
 Options: \`src\` (required), \`type\` (\`'script' \\| 'style'\`), \`stagepass\` (default true: during a session the file is served from the local project via \`localPath\`/\`path\` or the file name; \`false\` always uses \`src\`), \`localPath\`, \`path\`, \`id\`, \`async\`, \`defer\`, \`version\` (adds \`?v=\` in production), \`attributes\`, \`position\` (\`'head' \\| 'body-start' \\| 'body-end' \\| { target, action: 'before' \\| 'after' }\`), \`integrity\`, \`crossorigin\`, \`nonce\`, \`allowedHosts\`.`,
   cookies: `### Module: cookies (\`sp.cookies\`, alias \`sp.cookie\`, plus \`sp.consent\`)
 
-Webflow script tag: \`https://cdn.stagepass.one/modules@2.2.2/cookies.min.js\` after \`loader.min.js\`.
+Webflow script tag: \`https://cdn.stagepass.one/modules@${SNIPPET_MODULES_VERSION}/cookies.min.js\` after \`loader.min.js\`.
 
 \`\`\`ts
 if (sp.cookies) {
@@ -120,7 +126,7 @@ Write options: \`days\`, \`maxAge\`, \`path\`, \`domain\`, \`secure\`, \`sameSit
 Consent: \`allows(category)\`, \`set(fn)\`, \`update()\`.`,
   maintenance: `### Module: maintenance (\`sp.maintenance\`)
 
-Webflow script tag: \`https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js\` after \`loader.min.js\` (optional attributes \`data-stagepass-maintenance="true"\`, \`data-stagepass-maintenance-title\`, \`data-stagepass-maintenance-text\`).
+Webflow script tag: \`https://cdn.stagepass.one/modules@${SNIPPET_MODULES_VERSION}/maintenance.min.js\` after \`loader.min.js\` (optional attributes \`data-stagepass-maintenance="true"\`, \`data-stagepass-maintenance-title\`, \`data-stagepass-maintenance-text\`).
 
 \`\`\`ts
 if (sp.maintenance && !sp.maintenance.isActive()) {
@@ -352,6 +358,8 @@ function phpLabel(ctx) {
  * @param {string | null} ctx.configFile
  * @param {string[]} ctx.types
  * @param {boolean} ctx.modulesDependency
+ * @param {string} [ctx.cdn] `stagepass` (default) or `jsdelivr`
+ * @param {string} [ctx.loaderVersion] Resolved loader pin used in official snippets
  */
 export function buildStagepassGuide(ctx) {
   const name = ctx.name || 'project';
@@ -361,6 +369,24 @@ export function buildStagepassGuide(ctx) {
   const openHost = origin || `${linkName}.webflow.io`;
   const configFile = ctx.configFile;
   const types = Array.isArray(ctx.types) ? ctx.types : ['@stagepass/loader'];
+  const loaderVersion = ctx.loaderVersion || SNIPPET_LOADER_VERSION;
+  const cdnChoice = normalizeCdnChoice(ctx.cdn) || 'stagepass';
+  const officialLoaderUrl = stagepassPackageUrl(
+    'loader',
+    `@${loaderVersion}`,
+    'loader.min.js',
+    { cdn: 'stagepass' }
+  );
+  const jsdelivrLoaderUrl = stagepassPackageUrl(
+    'loader',
+    '@2',
+    'loader.min.js',
+    { cdn: 'jsdelivr' }
+  );
+  const cdnLine =
+    cdnChoice === 'jsdelivr'
+      ? `- **CDN:** This project uses jsDelivr (major pin \`@2\`), for example \`${jsdelivrLoaderUrl}\`. The Stagepass CDN exact pin is the alternative (\`${officialLoaderUrl}\`).`
+      : `- **CDN:** Stagepass CDN first, exact pin, full file path, no \`/dist/\` segment, for example \`${officialLoaderUrl}\`. jsDelivr is the alternative (\`${jsdelivrLoaderUrl}\`).`;
   const parts = [
     `# Stagepass (${name})`,
     '',
@@ -386,7 +412,7 @@ export function buildStagepassGuide(ctx) {
     '- **Session:** `localStorage` key `stagepass_domain`, JSON `{ domain, expires }` (default 12 h).',
     '- **Modules:** separate script tags after `loader.min.js`. This file documents only the modules declared in `stagepass.json`.',
     '- **Runtime:** call `sp` (same object as `window.stagepass`).',
-    '- **CDN:** Stagepass CDN first, exact pin, full file path, no `/dist/` segment, for example `https://cdn.stagepass.one/loader@2.5.0/loader.min.js`. jsDelivr is the alternative (`https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`).',
+    cdnLine,
     '',
     '## Safe rules',
     '',
