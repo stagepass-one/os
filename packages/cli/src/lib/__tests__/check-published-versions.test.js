@@ -62,7 +62,7 @@ describe('check-published-versions', () => {
         '',
       ].join('\n'),
       'packages/cli/src/lib/cdn-base.js': [
-        "export const SNIPPET_LOADER_VERSION = '2.5.0';",
+        "export const SNIPPET_LOADER_VERSION = '2.5.1';",
         "export const SNIPPET_MODULES_VERSION = '2.2.2';",
         '',
       ].join('\n'),

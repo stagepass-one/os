@@ -110,7 +110,7 @@ describe('planProjectSync / applyProjectSync', () => {
     const pinnedGuide = pinned.writes.find((w) => w.file === 'AGENTS.stagepass.md').content;
     expect(pinnedGuide).toContain('cdn.stagepass.one/loader@2.4.0/loader.min.js');
     expect(pinnedGuide).toContain('This project uses jsDelivr');
-    expect(pinnedGuide).not.toContain('cdn.stagepass.one/loader@2.5.0/');
+    expect(pinnedGuide).not.toContain('cdn.stagepass.one/loader@2.5.1/');
     expect(plan.writes.find((w) => w.file === 'stagepass.d.ts').content).toBe(renderStagepassTypesFile(['@stagepass/loader']));
     expect(plan.writes.find((w) => w.file === 'stagepass.d.ts').content).toContain(STAGEPASS_TYPES_MARKER);
     expect(plan.notes.join('\n')).toContain('No tsconfig.json or jsconfig.json:');

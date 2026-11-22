@@ -35,9 +35,9 @@ Packages are versioned independently: `@stagepass/cli`, `@stagepass/loader`, `@s
 
 ## `@stagepass/cli`
 
-### [2.6.0] - unreleased
+### [2.6.0] - 2026-11-22
 
-Minor release on top of 2.5.0. The default CDN for generated Webflow snippets is now `https://cdn.stagepass.one` with exact pins and full file paths (`stagepass new`, the wizard, `stagepass start`, `stagepass upgrade`). `stagepass new --cdn jsdelivr` and the persisted `cdn` key in `stagepass.json` keep the jsDelivr major pin `@2`. Default snippets also print a jsDelivr alternative line. Live-site detection also recognises `cdn.stagepass.one`. Released together with `@stagepass/loader` 2.5.1 (separate package, own tag). Modules are not part of this release. Not yet published on npm.
+Minor release on top of 2.5.0. The default CDN for generated Webflow snippets is now `https://cdn.stagepass.one` with exact pins and full file paths (`stagepass new`, the wizard, `stagepass start`, `stagepass upgrade`). `stagepass new --cdn jsdelivr` and the persisted `cdn` key in `stagepass.json` keep the jsDelivr major pin `@2`. Default snippets also print a jsDelivr alternative line. Live-site detection also recognises `cdn.stagepass.one`. Released together with `@stagepass/loader` 2.5.1 (separate package, own tag). Modules are not part of this release. Published on npm as `@stagepass/cli@2.6.0` on 22 November 2026 at 13:00 Europe/Berlin. Source tag `cli-v2.6.0` (`3d8527c`). npm package shasum `d2137232b310ceb0f9c5baf5081981a4c3b6e2a9`, integrity `sha512-0387LdUKLaodxuTemr4eUddm4FAid//BLVcB1k2mNSqjU9uCiU9IiCxrXxitdZDHAey5CEQdgaT3xzKl5m4kSQ==`, tarball sha256 `fe10d0e115b17bb5811e1148ff909c1ced4c71842eb15ef35748556d61e78e1d`. npm dist-tag `latest` is `@stagepass/cli@2.6.0`.
 
 #### Changed
 
@@ -450,9 +450,9 @@ Stable release of the 2.0 line (same behaviour as `2.0.0-beta.1`).
 
 ## `@stagepass/loader`
 
-### [2.5.1] - 2026-11-21
+### [2.5.1] - 2026-11-22
 
-Loader-only patch on top of 2.5.0. CLI and modules are not part of this release. Not yet published on npm.
+Loader-only patch on top of 2.5.0. CLI and modules are not part of this release. Published on npm as `@stagepass/loader@2.5.1` on 22 November 2026 at 12:17 Europe/Berlin. Source tag `loader-v2.5.1` (`9b441eb`). npm package shasum `df6b47cff8ea3a3c9aab7bfb3fbf0081522c087b`, integrity `sha512-7XbJc8XrxhPWl91k0g7AS/gBES1h9tshkfK0Oi7tablxX1kE7CIejdugtlVfFS+ooJu3myDc00+802hBKSEPAg==`, tarball sha256 `bb9f5b2d202351bbf6621c1179a2d4b5efaf8b5902aa780b85608f32fdde13f5`. `loader.min.js` sha256 `490774a35dfca9e07d1ddf0e4e975ebcd4456146ab6f7d39fc8d78056fcb1ebb` (15135 bytes). npm dist-tag `latest` is `@stagepass/loader@2.5.1`.
 
 #### Changed
 
@@ -469,7 +469,7 @@ Loader-only patch on top of 2.5.0. CLI and modules are not part of this release.
 #### Notes
 
 - Measured `loader.min.js`: 15135 / 6690 / 5971 (raw / gzip / brotli); 2.5.0 was 15065 / 6664 / 5958. Raw +70 and gzip +26 are the lazy getters and the one-shot memo; brotli +13 stays inside the previous ceiling. The earlier nocache freeze of 15006 / 6621 / 5910 is not the 2.5.0 file.
-- The CLI `LOADER_VERSION` snapshot in this repo moves to 2.5.1. Snippet pins stay on the published loader 2.5.0.
+- The CLI `LOADER_VERSION` snapshot in this repo is 2.5.1. After this publish, snippet pins (`SNIPPET_LOADER_VERSION`) are 2.5.1. Published `@stagepass/cli@2.6.0` was frozen with snippet pin 2.5.0 (the loader was not yet on npm at freeze time).
 
 ### [2.5.0] - 2026-11-12
 

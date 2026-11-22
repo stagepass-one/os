@@ -256,7 +256,7 @@ describe('official head snippets', () => {
     expect(SNIPPET_MODULES_VERSION).toBe('2.2.2');
     const pins = await fs.readFile(new URL('../cdn-base.js', import.meta.url), 'utf8');
     expect(pins).not.toMatch(/package\.json/);
-    expect(pins).toContain("export const SNIPPET_LOADER_VERSION = '2.5.0';");
+    expect(pins).toContain("export const SNIPPET_LOADER_VERSION = '2.5.1';");
     expect(pins).toContain("export const SNIPPET_MODULES_VERSION = '2.2.2';");
     const builder = await fs.readFile(new URL('../snippets.js', import.meta.url), 'utf8');
     expect(builder).toContain('SNIPPET_LOADER_VERSION');

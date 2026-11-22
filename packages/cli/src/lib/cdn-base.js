@@ -15,7 +15,7 @@ export const STAGEPASS_PACKAGE_CDN = STAGEPASS_CDN_ORIGIN;
  * Literals only: not read from the CLI package version, and not copied
  * automatically when the monorepo is ahead of npm.
  */
-export const SNIPPET_LOADER_VERSION = '2.5.0';
+export const SNIPPET_LOADER_VERSION = '2.5.1';
 export const SNIPPET_MODULES_VERSION = '2.2.2';
 export const SNIPPET_MAJOR_PIN = '@2';
 

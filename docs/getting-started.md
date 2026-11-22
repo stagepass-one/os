@@ -119,19 +119,19 @@ Add the **Universal Loader** to your Webflow project settings (Project Settings 
 ```html
 <!-- Core loader only (exact pin on the Stagepass CDN) -->
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
-  data-stagepass-version="2.5.0"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  data-stagepass-version="2.5.1"
 ></script>
 ```
 
-Use the full file path so session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) load from the same folder. The short form `https://cdn.stagepass.one/loader@2.5.0` serves the same loader bytes, but a script tag at that URL resolves chunks from the CDN root and they 404. This host has no `/dist/` segment. Or set `data-stagepass-flag-base`.
+Use the full file path so session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) load from the same folder. A short alias such as `https://cdn.stagepass.one/loader@2.5.1` or `/loader@2` serves the same loader bytes, but loader 2.5.1 still resolves chunks from the CDN root; the CDN 302-redirects those three root paths to `/loader@2/<file>` as a compatibility shim. This host has no `/dist/` segment. Or set `data-stagepass-flag-base`.
 
 jsDelivr is the documented alternative:
 
 ```html
 <script
   src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js"
-  data-stagepass-version="2.5.0"
+  data-stagepass-version="2.5.1"
 ></script>
 ```
 
@@ -161,8 +161,8 @@ Modules extend the core loader with additional features (e.g., programmatic inje
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
-  data-stagepass-version="2.5.0"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  data-stagepass-version="2.5.1"
 ></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/cookies.min.js"></script>
@@ -172,7 +172,7 @@ Modules extend the core loader with additional features (e.g., programmatic inje
 Or load the combined modules bundle:
 
 ```html
-<script src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"></script>
+<script src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/all.min.js"></script>
 ```
 
@@ -229,7 +229,7 @@ Go to your live Webflow URL and append the parameter:
 
 **Browser prerequisites:** for this public-origin → `.sp` (loopback) path, allow Chrome **Local network** / **Loopback network** for that live site when prompted (or in Site settings if previously blocked), and trust the Stagepass local CA (`stagepass certs check` / `certs trust`). See [troubleshooting.md](./troubleshooting.md#public-origin-to-sp-err_failed).
 
-For CSS hot swap and JS full reload while you edit, run `stagepass dev` in the linked project (published CLI 2.3.1 and later). Live reload / `live.min.js` ships since published loader **2.4.0** (npm `latest` is **2.5.0**; pin `@2.5.0`). Published **2.3.3** does not include it. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.0`) when a specific build must load (see [dev.md](./dev.md)).
+For CSS hot swap and JS full reload while you edit, run `stagepass dev` in the linked project (published CLI 2.3.1 and later). Live reload / `live.min.js` ships since published loader **2.4.0** (npm `latest` is **2.5.1**; pin `@2.5.1`). Published **2.3.3** does not include it. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.1`) when a specific build must load (see [dev.md](./dev.md)).
 
 ## Session modes
 
