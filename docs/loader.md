@@ -251,7 +251,7 @@ Notes:
 * Browser/OS/device detection is heuristic (best effort).
 * `client` values are runtime data, not analytics consent/tracking signals.
 * `theme.current` and `viewport.*` are refreshed while the page is running.
-* `capabilities.localStorage` and `capabilities.sessionStorage` stay booleans; each is probed once, on first read (`sp.can` or the field), not on every page load.
+* `capabilities.localStorage` and `capabilities.sessionStorage` stay booleans; each is probed once, on first read (`sp.can` or the field), not on every page load. The storage probe result is memoized per page load, including a failed probe; reading or copying `sp.vars.client.capabilities` (spread, JSON.stringify, logging) triggers the probe once.
 
 ### Local URL helper (`sp.resolveLocalUrl`)
 

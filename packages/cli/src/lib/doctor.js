@@ -567,7 +567,7 @@ export async function runDoctor(opts = {}) {
       check(
         'cdn',
         'warn',
-        'Recommended CDN snippets include unpinned refs (@latest, @1, or bare package; prefer @2)',
+        'Recommended CDN snippets include unpinned refs (@latest, @1, or bare package; use an exact version, or @2 on jsDelivr)',
         unpinned.offenders.join(', ')
       )
     );
@@ -576,7 +576,7 @@ export async function runDoctor(opts = {}) {
       check(
         'cdn',
         'ok',
-        'Recommended CDN snippets use a pinned major (@2), not @latest/@1/bare'
+        'Recommended CDN snippets are pinned (exact version or major @2), not @latest/@1/bare'
       )
     );
   }
@@ -599,7 +599,7 @@ export async function runDoctor(opts = {}) {
           check(
             'cdn.project',
             'warn',
-            'Project files contain unpinned Stagepass CDN URLs (@latest, @1, or bare; prefer @2)',
+            'Project files contain unpinned Stagepass CDN URLs (@latest, @1, or bare; use an exact version, or @2 on jsDelivr)',
             detail
           )
         );

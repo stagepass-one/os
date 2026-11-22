@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import {
   parseLsofListenOutput,
   assessResolverContent,
@@ -415,5 +418,84 @@ describe('[caddy-2.9] doctor Caddy version', () => {
     });
     const missing = await caddyCheck(null);
     expect(missing).toEqual(unknown);
+  });
+});
+
+const CDN_SNIPPET_WARN =
+  'Recommended CDN snippets include unpinned refs (@latest, @1, or bare package; use an exact version, or @2 on jsDelivr)';
+const CDN_SNIPPET_OK =
+  'Recommended CDN snippets are pinned (exact version or major @2), not @latest/@1/bare';
+const CDN_PROJECT_WARN =
+  'Project files contain unpinned Stagepass CDN URLs (@latest, @1, or bare; use an exact version, or @2 on jsDelivr)';
+
+function doctorCdnText(overrides = {}) {
+  return runDoctor({
+    platform: 'linux',
+    projectChecks: false,
+    skipHandshake: true,
+    resolverPath: '/tmp/sp-doctor-text-resolver',
+    caddyfilePath: '/tmp/sp-doctor-text-Caddyfile',
+    projectsPath: '/tmp/sp-doctor-text-projects.json',
+    rootCaPath: '/tmp/sp-doctor-text-ca.crt',
+    plistPath: '/tmp/sp-doctor-text-agent.plist',
+    pathExists: async () => false,
+    readFile: async () => {
+      throw new Error('missing');
+    },
+    exec: async (file, args = []) => {
+      if (file === '/usr/bin/env' && args[0] === 'which') {
+        throw Object.assign(new Error('not found'), { code: 1 });
+      }
+      if (file === 'lsof' || file === 'launchctl') {
+        throw Object.assign(new Error('not available'), { code: 1 });
+      }
+      return { stdout: '', stderr: '', code: 0 };
+    },
+    ...overrides,
+  });
+}
+
+describe('[2.6.0 doctor-text] CDN hint copy', () => {
+  it('[2.6.0 doctor-text] warns when a snippet set uses @latest', async () => {
+    const result = await doctorCdnText({
+      cdnSnippets: ['https://cdn.stagepass.one/loader@latest/loader.min.js'],
+      projectCdnScan: false,
+    });
+    const cdn = result.checks.find((c) => c.id === 'cdn');
+    expect(cdn?.status).toBe('warn');
+    expect(cdn?.message).toBe(CDN_SNIPPET_WARN);
+    expect(cdn?.message).toContain('exact version');
+  });
+
+  it('[2.6.0 doctor-text] reports the ok text for default RECOMMENDED_CDN_SNIPPETS', async () => {
+    const result = await doctorCdnText({
+      cdnSnippets: RECOMMENDED_CDN_SNIPPETS,
+      projectCdnScan: false,
+    });
+    const cdn = result.checks.find((c) => c.id === 'cdn');
+    expect(cdn).toEqual({ id: 'cdn', status: 'ok', message: CDN_SNIPPET_OK });
+  });
+
+  it('[2.6.0 doctor-text] warns when a project file has an unpinned Stagepass CDN URL', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-doctor-text-'));
+    const url = 'https://cdn.stagepass.one/loader@latest/loader.min.js';
+    const full = path.join(dir, 'README.md');
+    try {
+      await fs.writeFile(full, `${url}\n`);
+      const result = await doctorCdnText({
+        cwd: dir,
+        pathExists: async (p) => p === full,
+        readFile: async (p) => {
+          if (p === full) return fs.readFile(full, 'utf8');
+          throw new Error(`missing ${p}`);
+        },
+      });
+      const project = result.checks.find((c) => c.id === 'cdn.project');
+      expect(project?.status).toBe('warn');
+      expect(project?.message).toBe(CDN_PROJECT_WARN);
+      expect(project?.detail).toContain(url);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
   });
 });
