@@ -11,8 +11,8 @@ Prefer an exact pin on the Stagepass CDN in production. Stagepass follows strict
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
-  data-stagepass-version="2.5.0"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  data-stagepass-version="2.5.1"
 ></script>
 ```
 

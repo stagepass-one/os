@@ -84,7 +84,7 @@ Pin the **exact** published version (ranges like `@2` will not pick up a prerele
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
 ></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
 ```

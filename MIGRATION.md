@@ -6,7 +6,7 @@ Prefer the major pin `@2` (strict semver within v2; breaking changes only in a n
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
   data-stagepass-version="2.2.0"
 ></script>
 ```
@@ -82,7 +82,7 @@ An explicit `--origin *.webflow.io` is still accepted but prints a warning (any 
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
   data-stagepass-mute-console="true"
 ></script>
 ```
@@ -99,7 +99,7 @@ An explicit `--origin *.webflow.io` is still accepted but prints a warning (any 
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
   data-stagepass-session-hours="24"
 ></script>
 ```
@@ -121,7 +121,7 @@ Both append `?v=<version>` (URL-encoded; existing query/hash preserved). Per-req
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
   data-stagepass-version="2026-11-01"
 ></script>
 <script
@@ -178,7 +178,7 @@ npm install -g @stagepass/cli@2
 ## Modules
 
 ```html
-<script src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"></script>
+<script src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/cookies.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js"></script>
