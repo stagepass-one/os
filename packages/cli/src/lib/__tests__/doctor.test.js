@@ -84,7 +84,7 @@ broken.sp {
 
   it('recommended CDN snippets use the Stagepass CDN with exact pins', () => {
     expect(RECOMMENDED_CDN_SNIPPETS).toEqual([
-      'https://cdn.stagepass.one/loader@2.5.0/loader.min.js',
+      'https://cdn.stagepass.one/loader@2.5.1/loader.min.js',
       'https://cdn.stagepass.one/modules@2.2.2/inject.min.js',
       'https://cdn.stagepass.one/modules@2.2.2/cookies.min.js',
       'https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js',

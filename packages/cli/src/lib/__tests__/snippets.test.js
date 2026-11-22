@@ -252,7 +252,7 @@ describe('official head snippets', () => {
   });
 
   it('reads snippet pins from cdn-base literals, not the CLI package.json', async () => {
-    expect(SNIPPET_LOADER_VERSION).toBe('2.5.0');
+    expect(SNIPPET_LOADER_VERSION).toBe('2.5.1');
     expect(SNIPPET_MODULES_VERSION).toBe('2.2.2');
     const pins = await fs.readFile(new URL('../cdn-base.js', import.meta.url), 'utf8');
     expect(pins).not.toMatch(/package\.json/);
