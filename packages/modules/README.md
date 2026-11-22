@@ -20,8 +20,8 @@ Prefer an exact pin on the Stagepass CDN in production. Stagepass follows strict
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
-  data-stagepass-version="2.5.0"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  data-stagepass-version="2.5.1"
 ></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/cookies.min.js"></script>
@@ -36,7 +36,7 @@ Prefer an exact pin on the Stagepass CDN in production. Stagepass follows strict
 Or load all modules:
 
 ```html
-<script src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"></script>
+<script src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/all.min.js"></script>
 ```
 
