@@ -42,6 +42,7 @@ Minor release on top of 2.5.0. The default CDN for generated Webflow snippets is
 #### Changed
 
 - Generated Webflow snippets, `stagepass new` (`--yes` and the wizard), `stagepass start`, and `stagepass upgrade` default to the Stagepass CDN with exact pins and full file paths. `stagepass new --cdn jsdelivr` still prints the jsDelivr major pin `@2` alternative. Live-site detection recognises `cdn.stagepass.one` and still recognises jsDelivr and existing unpkg tags. `AGENTS.stagepass.md` lists the Stagepass CDN first.
+- `stagepass doctor` CDN hints recommend an exact version on the Stagepass CDN, or `@2` on jsDelivr, instead of "prefer @2".
 
 #### Added
 
