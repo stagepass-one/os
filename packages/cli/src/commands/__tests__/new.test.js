@@ -312,7 +312,7 @@ describe('createNew', () => {
     // not the bundled constant 2.5.0 and not the CLI version 2.0.0 (AC-14).
     expect(readme).toContain('cdn.stagepass.one/loader@2.2.0/loader.min.js');
     expect(readme).toContain('data-stagepass-version="2.2.0"');
-    expect(readme).not.toContain('cdn.stagepass.one/loader@2.5.0/loader.min.js');
+    expect(readme).not.toContain('cdn.stagepass.one/loader@2.5.1/loader.min.js');
     expect(readme).not.toContain('data-stagepass-version="2.0.0"');
     expect(readme).not.toContain('unpkg.com');
 
@@ -323,7 +323,7 @@ describe('createNew', () => {
     expect(agents).not.toContain('## Stagepass feature set');
     const guide = await fs.readFile(path.join(target, 'AGENTS.stagepass.md'), 'utf8');
     expect(guide).toContain('cdn.stagepass.one/loader@2.2.0/loader.min.js');
-    expect(guide).not.toContain('cdn.stagepass.one/loader@2.5.0/loader.min.js');
+    expect(guide).not.toContain('cdn.stagepass.one/loader@2.5.1/loader.min.js');
     expect(guide).toContain('cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js');
     expect(guide).not.toMatch(/unpkg serves the same paths/i);
     expect(guide).not.toContain('unpkg.com');

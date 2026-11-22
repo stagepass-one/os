@@ -6,26 +6,26 @@ Package: `@stagepass/loader`. Standalone browser script (no CLI dependency). In 
 
 Stagepass follows strict semver: **no breaking changes within v2**; breaking changes only land in a new major (v3). For production embeds on the Stagepass CDN, pin an **exact** version. `@2`, `@2.x`, `/loader`, and `/loader@latest` on this host are short-lived redirects (`max-age=300`), not immutable files.
 
-**Published loader and live reload:** Pin an exact version (e.g. `@2.5.0`) when a specific build must load. `live.min.js` ships since published loader **2.4.0** (`loader-v2.4.0` / `cddec72`). npm `latest` is **2.5.0**. Published **2.3.3** does **not** include it (`https://cdn.stagepass.one/loader@2.3.3/live.min.js` 404s; version scope, not a packaging bug). Do not assume an alias embed ships live reload.
+**Published loader and live reload:** Pin an exact version (e.g. `@2.5.1`) when a specific build must load. `live.min.js` ships since published loader **2.4.0** (`loader-v2.4.0` / `cddec72`). npm `latest` is **2.5.1**. Published **2.3.3** does **not** include it (`https://cdn.stagepass.one/loader@2.3.3/live.min.js` 404s; version scope, not a packaging bug). Do not assume an alias embed ships live reload.
 
 ### Recommended (Stagepass CDN, exact pin)
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
-  data-stagepass-version="2.5.0"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  data-stagepass-version="2.5.1"
 ></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
 ```
 
-Always use the **full file path**. The short form `https://cdn.stagepass.one/loader@2.5.0` serves the same loader bytes, but a script tag at that URL resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from the CDN root and they 404. Alternatively set `data-stagepass-flag-base` to the folder that contains those chunks.
+Always use the **full file path** for an exact pin. A short alias such as `https://cdn.stagepass.one/loader@2.5.1` or `/loader@2` serves the same loader bytes, but loader 2.5.1 still resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from the CDN root. The CDN 302-redirects those three root paths to `/loader@2/<file>` as a compatibility shim. Prefer the full file path so the chunks load from the same folder without that hop. Alternatively set `data-stagepass-flag-base` to the folder that contains those chunks.
 
 jsDelivr is the documented alternative. Use the full `/dist/` path there:
 
 ```html
 <script
   src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js"
-  data-stagepass-version="2.5.0"
+  data-stagepass-version="2.5.1"
 ></script>
 <script src="https://cdn.jsdelivr.net/npm/@stagepass/modules@2/dist/inject.min.js"></script>
 ```
@@ -71,7 +71,7 @@ Why `@2`:
 | `data-src` / `data-href` | asset | Production URL (legacy mode; loaded by default for all users) |
 | `data-stagepass-path` | asset | Relative path on the local `.sp` root (optional; if omitted while swapping, the filename is extracted from the production URL) |
 | `data-stagepass-v` | asset | Production appends `?v=<version>` |
-| `data-stagepass-nocache` | asset | Available in published loader **2.5.0** (npm `latest`). Boolean (present, or `="true"`; `="false"` off). Production only: appends `?_cb=<timestamp>` to this asset on every page view, for every visitor. Combines with `data-stagepass-v` as `?v=<version>&_cb=<timestamp>`. No effect during an active local/dev swap session or on `data-stagepass-live-src="true"` assets. |
+| `data-stagepass-nocache` | asset | Available in published loader **2.5.0** and later (npm `latest` is **2.5.1**). Boolean (present, or `="true"`; `="false"` off). Production only: appends `?_cb=<timestamp>` to this asset on every page view, for every visitor. Combines with `data-stagepass-v` as `?v=<version>&_cb=<timestamp>`. No effect during an active local/dev swap session or on `data-stagepass-live-src="true"` assets. |
 | `data-stagepass-version` | loader | Default production `?v=` for assets without a per-asset override |
 | `data-stagepass-session-hours` | loader | Session lifetime in hours (default `12`) |
 | `data-stagepass-mute-console="true"` | loader | Opt-in legacy global console mute in production when no session |
@@ -119,7 +119,7 @@ While a session is active, a small pass-icon pill appears fixed in the top-right
 * Errors count `sp.error(...)`, `sp.log('error', ...)`, `console.error(...)`, uncaught errors, failed resource loads and unhandled promise rejections on the page. A missing local file shows "Local file not found (404)". When the local dev server cannot be reached, the card says "Local server not reachable", suggests `stagepass doctor` and, if Chrome blocks local network access, adds that hint.
 * Messages are always shown as plain text. Counters above 99 show `99+`.
 * The flag renders in a Shadow DOM, so site CSS cannot restyle it and it cannot restyle the site. It is keyboard accessible, and with `prefers-reduced-motion` all changes are instant.
-* The flag UI ships as two separate files, `dist/flag.min.js` and `dist/flag-card.min.js` (the card loads on first expand). Both are fetched only during a session, from the folder of the loader's own script URL, whatever the file is called (for example `https://cdn.stagepass.one/loader@2.5.0/flag.min.js`, or `/js/flag.min.js` next to a self-hosted `/js/stagepass.js`). When you self-host or copy the loader from `node_modules/@stagepass/loader/dist/`, copy both flag files (and `live.min.js`) into the same folder and everything stays on your server.
+* The flag UI ships as two separate files, `dist/flag.min.js` and `dist/flag-card.min.js` (the card loads on first expand). Both are fetched only during a session, from the folder of the loader's own script URL, whatever the file is called (for example `https://cdn.stagepass.one/loader@2.5.1/flag.min.js`, or `/js/flag.min.js` next to a self-hosted `/js/stagepass.js`). When you self-host or copy the loader from `node_modules/@stagepass/loader/dist/`, copy both flag files (and `live.min.js`) into the same folder and everything stays on your server.
 * Inlined or bundled loader: set `data-stagepass-flag-base="/assets/stagepass/"` on the script tag (or `window.stagepassFlagBase` before the loader runs). Without a script URL and without the option, the flag files still load from jsDelivr at the loader's exact version, and debug sessions show a warning.
 * With a strict Content Security Policy, `script-src` must allow the origin of the flag files (`https://cdn.stagepass.one` when you embed the Stagepass CDN; `https://cdn.jsdelivr.net` when you use the jsDelivr alternative or the inlined-loader fallback). If they are blocked, swapping still works and the console shows a warning.
 
@@ -135,7 +135,7 @@ Opt-in so production visitors load normal `src` / `href` tags (and optional SRI)
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
   data-stagepass-live-src="true"
 ></script>
 <script
@@ -263,7 +263,7 @@ sp.resolveLocalUrl('js/app.js');   // e.g. 'https://my-project.sp/js/app.js?_cb=
 sp.resolveLocalUrl('/lib.js');     // leading slash is normalized
 ```
 
-While a local session is active, swapped assets use a single `?_cb=<timestamp>` per page load. In production, use `data-stagepass-version` (loader) or `data-stagepass-v` (asset) to append `?v=<version>`. For an individual asset that must bypass caching permanently in production (for every visitor, every view — e.g. a script embedding forms via iframes), add `data-stagepass-nocache` to that element; it sets exactly one `?_cb=<timestamp>` after any `?v=`, replacing a `_cb` already present in the URL. It has no effect while swapping locally (the asset already resolves to the local `.sp` URL with its own `_cb` stamp) and does not apply to `data-stagepass-live-src="true"` assets. `data-stagepass-cachebust` stays legacy and separate. `data-stagepass-nocache` is available in published loader **2.5.0** (npm `latest`). Older loaders ignore the attribute.
+While a local session is active, swapped assets use a single `?_cb=<timestamp>` per page load. In production, use `data-stagepass-version` (loader) or `data-stagepass-v` (asset) to append `?v=<version>`. For an individual asset that must bypass caching permanently in production (for every visitor, every view — e.g. a script embedding forms via iframes), add `data-stagepass-nocache` to that element; it sets exactly one `?_cb=<timestamp>` after any `?v=`, replacing a `_cb` already present in the URL. It has no effect while swapping locally (the asset already resolves to the local `.sp` URL with its own `_cb` stamp) and does not apply to `data-stagepass-live-src="true"` assets. `data-stagepass-cachebust` stays legacy and separate. `data-stagepass-nocache` is available in published loader **2.5.0** and later (npm `latest` is **2.5.1`). Older loaders ignore the attribute.
 
 ```html
 <script
@@ -307,4 +307,4 @@ More CLI security notes: [`packages/cli/README.md`](../packages/cli/README.md).
 
 ## Dev chunks
 
-While a session is active, the loader loads `flag.min.js` from the same folder as the loader script URL (or `data-stagepass-flag-base` / jsDelivr fallback). During a **swap** session (not debug), a loader build that ships the live client then appends `live.min.js` from the same folder as `flag-card.min.js`. `live.min.js` opens EventSource to `https://<domain.sp>/__stagepass/live` for CSS cache-bust without reload and full reload on JS; it closes after the first error when `stagepass dev` is not running. Never loaded without a session. Published **2.3.3** does not include `live.min.js`; the chunk ships since published loader **2.4.0**. npm `latest` is **2.5.0**. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.0`) when a specific build must load. See [dev.md](./dev.md) and [Version pinning](#version-pinning).
+While a session is active, the loader loads `flag.min.js` from the same folder as the loader script URL (or `data-stagepass-flag-base` / jsDelivr fallback). During a **swap** session (not debug), a loader build that ships the live client then appends `live.min.js` from the same folder as `flag-card.min.js`. `live.min.js` opens EventSource to `https://<domain.sp>/__stagepass/live` for CSS cache-bust without reload and full reload on JS; it closes after the first error when `stagepass dev` is not running. Never loaded without a session. Published **2.3.3** does not include `live.min.js`; the chunk ships since published loader **2.4.0**. npm `latest` is **2.5.1**. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.1`) when a specific build must load. See [dev.md](./dev.md) and [Version pinning](#version-pinning).

@@ -19,7 +19,9 @@ Workflow: `.github/workflows/release.yml` (and `scripts/check-release-version.mj
 | Prerelease (contains `-`) | `modules-v2.2.0-beta.1` | `next` |
 | Stable | `loader-v2.2.0` | `latest` |
 
-The selector (`scripts/check-release-version.mjs`) chooses the dist-tag: `next` when the version contains `-`, `latest` for a stable `X.Y.Z`. A stable release is staged on `latest`, so one `npm stage approve <id>` with 2FA publishes it as the default install. There is no separate promotion step. Prereleases stay on `next`, which remains available for later betas. A prerelease first is optional; use it when there are real test users. Stable releases are verified by the maintainer before tagging. `next` does not move `latest`.
+Only the `latest` dist-tag is used. There is no `next` or preview dist-tag until further notice. A stable release is staged on `latest`, so one `npm stage approve <id>` with 2FA publishes it as the default install. There is no promotion step and no post-publish step that points `next` at the new latest.
+
+The selector (`scripts/check-release-version.mjs`) can still map a version that contains `-` to `next`. Do not cut a prerelease or add a `next` dist-tag until that policy is lifted. If a `next` tag is found, it is a leftover to remove, not a channel to keep in sync.
 
 Always test betas with an **exact** version pin.
 
@@ -54,7 +56,7 @@ It builds, tests, verifies versions, then runs in the selected package directory
 npm stage publish --tag <dist_tag> --access public
 ```
 
-`<dist_tag>` comes from the selector: `next` for a prerelease, `latest` for a stable version.
+`<dist_tag>` for a stable version is `latest`. Do not stage or approve onto `next` until further notice.
 
 **Provenance:** `--provenance` is **not** used. npm provenance requires a supported cloud CI OIDC environment; the self-hosted runner is not supported.
 
@@ -102,13 +104,13 @@ git tag modules-v2.2.0
 git push origin modules-v2.2.0
 ```
 
-Repeat the tag (or `workflow_dispatch`) once per package you intend to stage. CI stages a stable version on `latest` (a prerelease stays on `next`). One approval with 2FA publishes that stable stage as `latest`. There is no promotion step.
+Repeat the tag (or `workflow_dispatch`) once per package you intend to stage. CI stages a stable version on `latest`. One approval with 2FA publishes that stable stage as `latest`. There is no promotion step and no `next` channel until further notice.
 
-Note: generated projects depend on `^2` for loader/modules (`PACKAGES_MAJOR_RANGE` in `packages/cli/src/lib/registry.js`), the same major as the jsDelivr pin `@2`. The Stagepass CDN default uses an exact pin (CLI 2.6.0, not yet published). That is a **dependency** constraint, not a same-version or single-workflow rule. If a newly scaffolded project needs a loader or modules version that is not yet approved, `npm install` can fail with `ETARGET`. Stage and approve those packages separately (own bump, own tag, own run, own stage ID) before relying on the scaffold; do not treat this as “always bump and approve all three together”.
+Note: generated projects depend on `^2` for loader/modules (`PACKAGES_MAJOR_RANGE` in `packages/cli/src/lib/registry.js`), the same major as the jsDelivr pin `@2`. The Stagepass CDN default in published CLI 2.6.0 uses an exact pin (`SNIPPET_LOADER_VERSION` 2.5.1 on master after this publish; the 2.6.0 tarball was frozen with 2.5.0). That is a **dependency** constraint, not a same-version or single-workflow rule. If a newly scaffolded project needs a loader or modules version that is not yet approved, `npm install` can fail with `ETARGET`. Stage and approve those packages separately (own bump, own tag, own run, own stage ID) before relying on the scaffold; do not treat this as “always bump and approve all three together”.
 
 ## 3. Verify dist-tags / manual dist-tag fixes
 
-After approval, confirm the dist-tags. A stable approval should already show that version as `latest`. A prerelease should show under `next` and leave `latest` unchanged.
+After approval, confirm the dist-tags. A stable approval should already show that version as `latest`. Only `latest` is used; there must be no `next` or preview dist-tag until further notice.
 
 ```bash
 npm view @stagepass/loader dist-tags
@@ -139,7 +141,7 @@ Sites that pin `@1` stay on 1.x. Sites that pin a major such as `@2` on jsDelivr
 3. Published date in CHANGELOG is the real publication/tag date, not a later CSS or metadata fix.
 4. After registry publication: record npm `gitHead` / integrity and check the jsDelivr CDN hash for the exact file that was published.
 5. Known limits and any documented reviewer exception (for example an individual size-ceiling exception) are written in the public notes. Human-verified facts stay human-verified; CI green is not a substitute.
-6. Verify dist-tags with `npm view <pkg> dist-tags`. After a stable approval, `latest` should already point at that version (staged directly; no promotion step). A prerelease stays on `next` and does not move `latest`. Use `npm dist-tag add` only to repair a wrong tag. Confirm before updating website badges (`LOADER_V`, latest-on-npm) or docs that say what `latest` is.
+6. Verify dist-tags with `npm view <pkg> dist-tags`. After a stable approval, `latest` should already point at that version (staged directly; no promotion step). Only `latest` is used; do not add or align a `next` or preview dist-tag. If a stale `next` tag exists, the maintainer removes it. Use `npm dist-tag add` only to repair a wrong `latest` tag. Confirm before updating website badges (`LOADER_V`, latest-on-npm) or docs that say what `latest` is.
 7. jsDelivr `@2` is a major-range alias and is not the npm `latest` tag. Those aliases can keep serving an older 2.x build until they refresh. On the Stagepass CDN, `@2` is a short-lived redirect (`max-age=300`) and exact file URLs are immutable. Document an exact pin when a specific build is required, and do not write that `@2` is `latest`.
 8. After the latest publish: Run scripts/mac-update-check.sh latest on a Mac with the previous version installed and attach the protocol.
 9. For a CLI release, check `packages/cli/src/lib/ai-guide.js` (the generated `AGENTS.stagepass.md`) against the published loader, modules, and CLI: new or changed APIs, flags, and PHP helpers. Do this alongside the README and `docs/`.

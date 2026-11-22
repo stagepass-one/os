@@ -55,19 +55,19 @@ describe('check-published-versions', () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'sp-pins-ok-'));
     writeFixture(dir, {
       'README.md': [
-        '<script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="2.5.0"></script>',
+        '<script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="2.5.1"></script>',
         '<script src="https://cdn.jsdelivr.net/npm/@stagepass/modules@2.2.2/dist/cookies.min.js"></script>',
         'live.min.js ships since 2.4.0',
-        'Optional exact pin example (instead of @2): loader @2.5.0, modules @2.2.2.',
+        'Optional exact pin example (instead of @2): loader @2.5.1, modules @2.2.2.',
         '',
       ].join('\n'),
       'packages/cli/src/lib/cdn-base.js': [
-        "export const SNIPPET_LOADER_VERSION = '2.5.0';",
+        "export const SNIPPET_LOADER_VERSION = '2.5.1';",
         "export const SNIPPET_MODULES_VERSION = '2.2.2';",
         '',
       ].join('\n'),
     });
-    const res = runGate(dir, mockEnv(dir, { loader: ['2.5.0'], modules: ['2.2.2'] }));
+    const res = runGate(dir, mockEnv(dir, { loader: ['2.5.1'], modules: ['2.2.2'] }));
     rmSync(dir, { recursive: true, force: true });
     expect(res.status).toBe(0);
     expect(res.stderr).not.toContain('npm-called');
@@ -180,7 +180,7 @@ describe('check-published-versions', () => {
     const constants = pins.filter((pin) => pin.file === 'packages/cli/src/lib/cdn-base.js');
     expect(constants).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ package: 'loader', version: '2.5.0' }),
+        expect.objectContaining({ package: 'loader', version: '2.5.1' }),
         expect.objectContaining({ package: 'modules', version: '2.2.2' }),
       ])
     );
@@ -188,7 +188,7 @@ describe('check-published-versions', () => {
     expect(loaderDoc.map((pin) => pin.version)).not.toContain('2.4.0');
     expect(loaderDoc).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ package: 'loader', version: '2.5.0' }),
+        expect.objectContaining({ package: 'loader', version: '2.5.1' }),
       ])
     );
   });

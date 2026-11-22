@@ -62,7 +62,7 @@ When a **public** `https://` page (for example a Webflow staging site) fetches `
 
 ## Live reload does nothing
 
-* Automatic CSS swap / JS reload needs a loader that ships `live.min.js` (ships since **2.4.0**; npm `latest` is **2.5.0**; pin `@2.5.0`) **and** an active `?stagepass=<project>.sp` swap session. Published **2.3.3** does **not** include `live.min.js`. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.0`) when a specific build must load. See [dev.md](./dev.md) and [loader.md](./loader.md#dev-chunks).
+* Automatic CSS swap / JS reload needs a loader that ships `live.min.js` (ships since **2.4.0**; npm `latest` is **2.5.1**; pin `@2.5.1`) **and** an active `?stagepass=<project>.sp` swap session. Published **2.3.3** does **not** include `live.min.js`. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.1`) when a specific build must load. See [dev.md](./dev.md) and [loader.md](./loader.md#dev-chunks).
 * Run `stagepass dev` inside the **linked** project directory (not only `npm run watch` or `stagepass watch` alone).
 * Keep a swap session active (not `debug`). The loader opens `EventSource` to `https://<domain.sp>/__stagepass/live` after injecting local assets.
 * If `stagepass dev` is not running, the live chunk closes after the first error and does not retry.
@@ -71,7 +71,7 @@ When a **public** `https://` page (for example a Webflow staging site) fetches `
 
 ## CDN still serves an old `@2` build
 
-Prefer an exact pin on the Stagepass CDN in production, for example `https://cdn.stagepass.one/loader@2.5.0/loader.min.js`. Aliases on this host (`@2`, `@latest`) redirect with a 300 second cache and do not need a purge.
+Prefer an exact pin on the Stagepass CDN in production, for example `https://cdn.stagepass.one/loader@2.5.1/loader.min.js`. Aliases on this host (`@2`, `@latest`) redirect with a 300 second cache and do not need a purge.
 
 jsDelivr is the documented alternative. To refresh its major alias after a release, purge:
 

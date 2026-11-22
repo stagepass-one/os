@@ -5,7 +5,7 @@ Package: `@stagepass/modules`. Load modules as **separate script tags** after `l
 Modules depend on the **Loader** at runtime (they use `sp.vars` / `stagepass.vars`). Load the loader script before any module script. `inject` and `cookies` still attach their APIs without the loader (and warn); `maintenance` skips registration without the loader. For npm users, `@stagepass/modules` lists `@stagepass/loader` as a peer dependency: install the loader when you install modules.
 
 ```html
-<script src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"></script>
+<script src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/cookies.min.js"></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js"></script>

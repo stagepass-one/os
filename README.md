@@ -31,8 +31,8 @@ In Webflow head code (prefer an exact pin on the Stagepass CDN in production; `d
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.0/loader.min.js"
-  data-stagepass-version="2.5.0"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  data-stagepass-version="2.5.1"
 ></script>
 <script
   data-src="https://cdn.example.com/js/app.min.js"
@@ -53,7 +53,7 @@ Open `https://your-site/?stagepass=demo.sp`. Details: [docs/getting-started.md](
 | [CLI](docs/cli.md) | Commands, flags, AGENTS.stagepass.md |
 | [Loader](docs/loader.md) | Version pinning, attributes, Runtime API, security |
 | [Modules](docs/modules.md) | inject, cookies, maintenance |
-| [Live reload](docs/dev.md) | Guide for `stagepass dev` / `watch` (running check #40); client chunk `live.min.js` ships since published loader 2.4.0 (npm `latest` is 2.5.0) |
+| [Live reload](docs/dev.md) | Guide for `stagepass dev` / `watch` (running check #40); client chunk `live.min.js` ships since published loader 2.4.0 (npm `latest` is 2.5.1) |
 | [Migration](docs/migration.md) | 1.x → 2.x ([full guide](MIGRATION.md)) |
 | [Troubleshooting](docs/troubleshooting.md) | Common fixes |
 
