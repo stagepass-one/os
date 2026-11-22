@@ -15,10 +15,6 @@ Packages are versioned independently: `@stagepass/cli`, `@stagepass/loader`, `@s
 
 - Docs: recommended embeds list the Stagepass CDN first (`https://cdn.stagepass.one/loader@2.5.0/loader.min.js` and the matching `/modules@2.2.2/` file paths). jsDelivr remains the documented alternative. unpkg is no longer recommended. Use the full file path on the Stagepass CDN (no `/dist/` segment) so session chunks resolve next to the loader.
 
-### `@stagepass/cli`
-
-- Generated Webflow snippets, `stagepass new` (`--yes` and the wizard), `stagepass start`, and `stagepass upgrade` default to the Stagepass CDN with exact pins and full file paths. `stagepass new --cdn jsdelivr` still prints the jsDelivr major pin `@2` alternative. Live-site detection recognises `cdn.stagepass.one` and still recognises jsDelivr and existing unpkg tags. `AGENTS.stagepass.md` lists the Stagepass CDN first. Not on npm until a CLI release (no tag or publish in this change).
-
 ### `@stagepass/modules`
 
 - Cookies: `sp.cookies.on('bake' | 'throw', fn)` (also on `sp.cookie`) returns an unsubscribe function. Fires after a successful write/delete (including queued bakes flushed by consent, and each cookie in `throwAll`). Listener errors do not break the operation.
@@ -38,6 +34,26 @@ Packages are versioned independently: `@stagepass/cli`, `@stagepass/loader`, `@s
 
 
 ## `@stagepass/cli`
+
+### [2.6.0] - unreleased
+
+Minor release on top of 2.5.0. The default CDN for generated Webflow snippets is now `https://cdn.stagepass.one` with exact pins and full file paths (`stagepass new`, the wizard, `stagepass start`, `stagepass upgrade`). `stagepass new --cdn jsdelivr` and the persisted `cdn` key in `stagepass.json` keep the jsDelivr major pin `@2`. Default snippets also print a jsDelivr alternative line. Live-site detection also recognises `cdn.stagepass.one`. Released together with `@stagepass/loader` 2.5.1 (separate package, own tag). Modules are not part of this release. Not yet published on npm.
+
+#### Changed
+
+- Generated Webflow snippets, `stagepass new` (`--yes` and the wizard), `stagepass start`, and `stagepass upgrade` default to the Stagepass CDN with exact pins and full file paths. `stagepass new --cdn jsdelivr` still prints the jsDelivr major pin `@2` alternative. Live-site detection recognises `cdn.stagepass.one` and still recognises jsDelivr and existing unpkg tags. `AGENTS.stagepass.md` lists the Stagepass CDN first.
+
+#### Added
+
+- `stagepass new` persists the snippet host as `cdn` in `stagepass.json` (`stagepass` or `jsdelivr`). `stagepass upgrade` reads that key.
+
+#### Notes
+
+- `package-versions.js` snapshot `LOADER_VERSION` is 2.5.1 (follow-up to info finding F-3 of the loader 2.5.1 review: the CLI version now moves to 2.6.0, so no CLI 2.5.0 with different content can be published).
+
+#### Notes for upgraders
+
+Existing projects keep their current embeds until `stagepass upgrade`. `upgrade` reads `cdn` from `stagepass.json` and defaults to the Stagepass CDN when the key is missing. Projects that want to stay on jsDelivr set `"cdn": "jsdelivr"` in `stagepass.json` before running upgrade. jsDelivr `@2` stays supported.
 
 ### [2.5.0] - 2026-11-17
 

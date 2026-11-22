@@ -104,7 +104,7 @@ git push origin modules-v2.2.0
 
 Repeat the tag (or `workflow_dispatch`) once per package you intend to stage. CI stages a stable version on `latest` (a prerelease stays on `next`). One approval with 2FA publishes that stable stage as `latest`. There is no promotion step.
 
-Note: generated projects depend on `^2` for loader/modules (`PACKAGES_MAJOR_RANGE` in `packages/cli/src/lib/registry.js`), the same major as the CDN pin `@2`. That is a **dependency** constraint, not a same-version or single-workflow rule. If a newly scaffolded project needs a loader or modules version that is not yet approved, `npm install` can fail with `ETARGET`. Stage and approve those packages separately (own bump, own tag, own run, own stage ID) before relying on the scaffold; do not treat this as “always bump and approve all three together”.
+Note: generated projects depend on `^2` for loader/modules (`PACKAGES_MAJOR_RANGE` in `packages/cli/src/lib/registry.js`), the same major as the jsDelivr pin `@2`. The Stagepass CDN default uses an exact pin (CLI 2.6.0, not yet published). That is a **dependency** constraint, not a same-version or single-workflow rule. If a newly scaffolded project needs a loader or modules version that is not yet approved, `npm install` can fail with `ETARGET`. Stage and approve those packages separately (own bump, own tag, own run, own stage ID) before relying on the scaffold; do not treat this as “always bump and approve all three together”.
 
 ## 3. Verify dist-tags / manual dist-tag fixes
 
