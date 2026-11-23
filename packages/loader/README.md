@@ -88,7 +88,7 @@ Storage key: `localStorage.stagepass_domain` → JSON `{ "domain": "…", "expir
 
 ## Privacy / storage
 
-The loader sets no cookies. On each load it reads the `localStorage` key `stagepass_domain` and removes that key only when the value is stale or invalid. It writes `stagepass_domain` only when a preview session is started via `?stagepass=` (`off`, `0`, and `false` remove the key). While a session is active, the flag UI may write `stagepass:expand`, `stagepass:prev`, and `stagepass:flash`. Storage capability is probed lazily, only when `sp.can('localStorage')`, `sp.can('sessionStorage')`, or `sp.vars.client.capabilities.localStorage` / `.sessionStorage` is used.
+The loader sets no cookies. On each load it reads the `localStorage` key `stagepass_domain` and removes that key only when the value is stale or invalid. It writes `stagepass_domain` only when a preview session is started via `?stagepass=` (`off`, `0`, and `false` remove the key). While a session is active, the flag UI may write `stagepass:expand`, `stagepass:prev`, and `stagepass:flash`. Storage capability is probed lazily, only when `sp.can('localStorage')`, `sp.can('sessionStorage')`, or `sp.vars.client.capabilities.localStorage` / `.sessionStorage` is used. The result of `sp.can('localStorage')` and `sp.can('sessionStorage')` is computed once per page load and cached, including when storage is unavailable. It is not retried until the next page load.
 
 ## Dev flag
 
