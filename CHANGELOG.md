@@ -471,6 +471,10 @@ Loader-only patch on top of 2.5.0. CLI and modules are not part of this release.
 - Measured `loader.min.js`: 15135 / 6690 / 5971 (raw / gzip / brotli); 2.5.0 was 15065 / 6664 / 5958. Raw +70 and gzip +26 are the lazy getters and the one-shot memo; brotli +13 stays inside the previous ceiling. The earlier nocache freeze of 15006 / 6621 / 5910 is not the 2.5.0 file.
 - The CLI `LOADER_VERSION` snapshot in this repo is 2.5.1. After this publish, snippet pins (`SNIPPET_LOADER_VERSION`) are 2.5.1. Published `@stagepass/cli@2.6.0` was frozen with snippet pin 2.5.0 (the loader was not yet on npm at freeze time).
 
+#### Docs
+
+- README section "Privacy / storage" now states that the result of `sp.can('localStorage')` and `sp.can('sessionStorage')` is computed once per page load and cached, including when storage is unavailable, and is not retried until the next page load.
+
 ### [2.5.0] - 2026-11-12
 
 Loader-only minor release on top of 2.4.0: adds `data-stagepass-nocache`; the visitor path without that attribute is unchanged; CLI and modules are not part of this release. Published on npm as `@stagepass/loader@2.5.0` on 12 November 2026, 12:06 Europe/Berlin, dist-tag `latest`. Source tag `loader-v2.5.0` (`1e88b52`), npm gitHead `1e88b5237e7d9cd4d9cdbfdfd9b51479dfcbb27d`, npm shasum `7be5dec96404e7f95b339411485c07369ecf1429`. jsDelivr `@2.5.0/dist/loader.min.js` serves the published file (15065 bytes). Published `@stagepass/modules` stays 2.2.2. The CLI's bundled `LOADER_VERSION` snapshot moves to 2.5.0 only in this repo and ships in CLI 2.5.0.
