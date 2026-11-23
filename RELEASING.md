@@ -37,6 +37,8 @@ Update `CHANGELOG.md` and docs as needed (maintainer duty, not a workflow gate).
 
 ### 1b. Tag and push
 
+Before pushing a release tag, run `npm run release:dry-run -- <ref>` from the repo root (for example `npm run release:dry-run -- loader-v2.5.1`). It applies the same single-package selection as the release workflow, prints the package directory and dist-tag that would be staged (`latest` for a stable version, `next` for a prerelease), and runs `npm pack --dry-run` in that directory. It does not publish or stage the package.
+
 ```bash
 git tag modules-v2.1.0-beta.1
 git push origin modules-v2.1.0-beta.1
