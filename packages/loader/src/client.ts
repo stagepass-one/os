@@ -92,6 +92,8 @@ export function getThemeInfo(): StagepassClientTheme {
  * Probe storage availability. The boolean is cached on this function so each
  * kind is written at most once. Ordinary loads do not call it; a preview
  * session read or write does not either (that path is separate and try/caught).
+ * The result is computed once per page load and cached, including when storage
+ * is unavailable, and is not retried until the next page load.
  *
  * @param type - Storage kind
  */

@@ -206,7 +206,7 @@ sp.vars.client      // object - Client runtime info (theme/browser/os/device/vie
 
 Optional loader attributes: `data-stagepass-staging-hosts`, `data-stagepass-alias` (custom global when free), `data-stagepass-live-src="true"` (zero-cost mode).
 
-`sp` and `stagepass` are always assigned (2.x compatibility). Prefer the flat helpers below for new code. In `?stagepass=debug`, after the flag chunk has loaded, reading `sp.vars` once logs a one-time hint: prefer `sp.env()` / `is()` / `can()` / `client()` / `on()` over reading `sp.vars` directly. Reads before the flag chunk loads simply do not hint. `vars` stays frozen. Client detection stays eager (2.0.0 behaviour). Storage capabilities are probed on first read.
+`sp` and `stagepass` are always assigned (2.x compatibility). Prefer the flat helpers below for new code. In `?stagepass=debug`, after the flag chunk has loaded, reading `sp.vars` once logs a one-time hint: prefer `sp.env()` / `is()` / `can()` / `client()` / `on()` over reading `sp.vars` directly. Reads before the flag chunk loads simply do not hint. `vars` stays frozen. Client detection stays eager (2.0.0 behaviour). Storage capabilities are probed on first read. The result of `sp.can('localStorage')` and `sp.can('sessionStorage')` is computed once per page load and cached, including when storage is unavailable, and is not retried until the next page load.
 
 ### Flat helpers
 
@@ -251,7 +251,7 @@ Notes:
 * Browser/OS/device detection is heuristic (best effort).
 * `client` values are runtime data, not analytics consent/tracking signals.
 * `theme.current` and `viewport.*` are refreshed while the page is running.
-* `capabilities.localStorage` and `capabilities.sessionStorage` stay booleans; each is probed once, on first read (`sp.can` or the field), not on every page load. The storage probe result is memoized per page load, including a failed probe; reading or copying `sp.vars.client.capabilities` (spread, JSON.stringify, logging) triggers the probe once.
+* `capabilities.localStorage` and `capabilities.sessionStorage` stay booleans; each is probed once, on first read (`sp.can` or the field), not on every page load. The result of `sp.can('localStorage')` and `sp.can('sessionStorage')` is computed once per page load and cached, including when storage is unavailable, and is not retried until the next page load. Reading or copying `sp.vars.client.capabilities` (spread, JSON.stringify, logging) triggers the probe once.
 
 ### Local URL helper (`sp.resolveLocalUrl`)
 
