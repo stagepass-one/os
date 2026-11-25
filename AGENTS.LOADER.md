@@ -13,7 +13,7 @@ Default embed is the Stagepass CDN major alias. Stagepass follows strict semver:
 <script src="https://cdn.stagepass.one/loader@2"></script>
 ```
 
-jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.2/loader.min.js`.
+jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js`.
 
 Optional loader attributes:
 - `data-stagepass-staging-hosts="preview.example.com,staging.example.com"`

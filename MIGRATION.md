@@ -8,7 +8,7 @@ Prefer the major alias `@2` (strict semver within v2; breaking changes only in a
 <script src="https://cdn.stagepass.one/loader@2"></script>
 ```
 
-jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.2/loader.min.js`.
+jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js`.
 
 ---
 

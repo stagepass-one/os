@@ -121,7 +121,7 @@ Add the **Universal Loader** to your Webflow project settings (Project Settings 
 <script src="https://cdn.stagepass.one/loader@2"></script>
 ```
 
-Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from that folder. Exact pin when needed: `https://cdn.stagepass.one/loader@2.5.2/loader.min.js` (optional `data-stagepass-version`). Or set `data-stagepass-flag-base`.
+Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from that folder. Exact pin when needed: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js` (optional `data-stagepass-version`). Or set `data-stagepass-flag-base`.
 
 jsDelivr is the documented alternative:
 

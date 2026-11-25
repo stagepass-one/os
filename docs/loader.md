@@ -21,13 +21,14 @@ Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.mi
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.2/loader.min.js"
-  data-stagepass-version="2.5.2"
+  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  data-stagepass-version="2.5.1"
 ></script>
 <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
 ```
 
-Use the **full file path** for an exact pin (this host has no `/dist/` segment). `data-stagepass-version` is optional; it only sets the production `?v=` default for tagged assets.
+Use the **full file path** for an exact pin (this host has no `/dist/` segment). `data-stagepass-version` is optional; it only sets the production `?v=` default for tagged assets. Until 2.5.2 is on npm, exact-pin examples stay on the last published loader (2.5.1).
+
 
 jsDelivr is the documented alternative. Use the full `/dist/` path there:
 
@@ -61,7 +62,7 @@ Why `@2`:
 
 * **Compatible updates**: minor/patch releases within v2 stay backward compatible under strict semver.
 * **One intentional major bump**: breaking changes require a new major (v3) and a deliberate URL change.
-* **Exact pin when needed**: use `@2.5.2/loader.min.js` (or any exact published version) for maximum control; prereleases are never resolved by `@2` (pin the exact beta, e.g. `@2.3.0-beta.4`).
+* **Exact pin when needed**: use `@2.5.1/loader.min.js` (or any exact published version) for maximum control; prereleases are never resolved by `@2` (pin the exact beta, e.g. `@2.3.0-beta.4`).
 
 ## Markup
 

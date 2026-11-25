@@ -38,7 +38,7 @@ In Webflow head code (default Stagepass CDN major alias; exact pin optional):
 ></script>
 ```
 
-jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.2/loader.min.js`.
+jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js`.
 
 Open `https://your-site/?stagepass=demo.sp`. Details: [docs/getting-started.md](docs/getting-started.md).
 

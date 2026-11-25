@@ -71,7 +71,7 @@ When a **public** `https://` page (for example a Webflow staging site) fetches `
 
 ## CDN still serves an old `@2` build
 
-Default embed is the major alias `https://cdn.stagepass.one/loader@2`. Exact pin when needed: `https://cdn.stagepass.one/loader@2.5.2/loader.min.js`. Aliases on this host (`@2`, `@latest`) redirect with a 300 second cache and do not need a purge.
+Default embed is the major alias `https://cdn.stagepass.one/loader@2`. Exact pin when needed: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js`. Aliases on this host (`@2`, `@latest`) redirect with a 300 second cache and do not need a purge.
 
 jsDelivr is the documented alternative. To refresh its major alias after a release, purge:
 
