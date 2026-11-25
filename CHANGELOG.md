@@ -13,7 +13,7 @@ Packages are versioned independently: `@stagepass/cli`, `@stagepass/loader`, `@s
 
 ### Repo
 
-- Docs: recommended embeds list the Stagepass CDN first (`https://cdn.stagepass.one/loader@2.5.0/loader.min.js` and the matching `/modules@2.2.2/` file paths). jsDelivr remains the documented alternative. unpkg is no longer recommended. Use the full file path on the Stagepass CDN (no `/dist/` segment) so session chunks resolve next to the loader.
+- Docs: default Stagepass CDN embeds are the major aliases `https://cdn.stagepass.one/loader@2` and `https://cdn.stagepass.one/modules@2` (no `data-stagepass-version`). Exact pins remain documented. jsDelivr remains the documented alternative. Loader 2.5.2 resolves session chunks from short CDN folder URLs (#161, #163).
 
 ### `@stagepass/modules`
 
@@ -449,6 +449,28 @@ Stable release of the 2.0 line (same behaviour as `2.0.0-beta.1`).
 ---
 
 ## `@stagepass/loader`
+
+### [2.5.2] - Unreleased
+
+Loader-only patch on top of 2.5.1. CLI and modules are not part of this release. This PR does not tag or publish to npm.
+
+#### Fixed
+
+- Short Stagepass CDN URLs such as `/loader@2` and `/loader@2.5.1` are treated as directories when resolving session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`). Previously `flagBase(..., true)` always used `new URL('./', src)`, so those aliases resolved to the CDN origin and requested `/flag.min.js` at the site root (#161).
+
+#### Notes
+
+- Measured `loader.min.js`: 15175 / 6730 / 5999 (raw / gzip / brotli); 2.5.1 was 15135 / 6690 / 5971. The short-CDN file-vs-folder check adds about 40 B raw / gzip.
+
+#### Docs
+
+- Default documented embed is the major alias without `data-stagepass-version`: `https://cdn.stagepass.one/loader@2` and `https://cdn.stagepass.one/modules@2`. An exact pin (e.g. `/loader@2.5.2/loader.min.js`, optionally with `data-stagepass-version`) remains documented for sites that want no automatic updates (#163).
+- Loader npm README: cachebust / version example spells out query order (original query without `_cb`, then `v`, then `_cb`) and `data-stagepass-nocache` vs legacy `data-stagepass-cachebust` (#138).
+
+#### Tests
+
+- Session and swap branch coverage for surviving mutants: expiry at the `now` boundary, non-finite `expires`, custom vs fallback session hours, production/`debug` paths that must not swap (#142).
+- Flag base resolution covers Stagepass CDN short aliases and jsDelivr / unpkg file paths (#161).
 
 ### [2.5.1] - 2026-11-22
 

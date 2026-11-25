@@ -304,7 +304,7 @@ var Stagepass = (() => {
     const W = window;
     const d = document;
     const loc = location;
-    const PKG_VERSION = true ? "2.5.1" : "0.0.0";
+    const PKG_VERSION = true ? "2.5.2" : "0.0.0";
     const LOADER_RE = /loader(?:\.min)?\.js/i;
     function flagBase(v, file) {
       if (typeof v !== "string" || !(v = v.trim())) return null;
@@ -577,7 +577,9 @@ var Stagepass = (() => {
         const opt = attr("flag-base") ?? W.stagepassFlagBase;
         let base = flagBase(opt, false);
         if (opt != null && !base) spWarn("Ignored flag base (http(s) or relative only): " + cut(String(opt), 99));
-        base = base || flagBase(loaderScript && loaderScript.src || "", true);
+        const src = loaderScript && loaderScript.src || "";
+        const file = fileOf(src);
+        base = base || flagBase(src, LOADER_RE.test(file) || /\.js$/i.test(file));
         if (!base) {
           base = `https://cdn.jsdelivr.net/npm/@stagepass/loader@${PKG_VERSION}/dist/`;
           if (debug) spWarn("Loader URL unknown, flag loads from " + base + ". Set data-stagepass-flag-base");

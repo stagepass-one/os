@@ -7,16 +7,13 @@ Last updated: 2026-11-02
 This profile is for projects that use Stagepass Loader only (no `@stagepass/modules`).
 
 ## CDN (version pinning)
-Prefer an exact pin on the Stagepass CDN in production. Stagepass follows strict semver: no breaking changes within v2; breaking changes only in a new major (v3). `@2` on this host is a short-lived redirect, not an immutable file. Legacy `@1` sites are unaffected.
+Default embed is the Stagepass CDN major alias. Stagepass follows strict semver: no breaking changes within v2; breaking changes only in a new major (v3). `@2` on this host is a short-lived redirect, not an immutable file. Legacy `@1` sites are unaffected. Exact pin when a specific build must load.
 
 ```html
-<script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
-  data-stagepass-version="2.5.1"
-></script>
+<script src="https://cdn.stagepass.one/loader@2"></script>
 ```
 
-jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Use the full file path on each host. The Stagepass CDN has no `/dist/` segment.
+jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js`.
 
 Optional loader attributes:
 - `data-stagepass-staging-hosts="preview.example.com,staging.example.com"`

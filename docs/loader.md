@@ -4,11 +4,20 @@ Package: `@stagepass/loader`. Standalone browser script (no CLI dependency). In 
 
 ## Version pinning
 
-Stagepass follows strict semver: **no breaking changes within v2**; breaking changes only land in a new major (v3). For production embeds on the Stagepass CDN, pin an **exact** version. `@2`, `@2.x`, `/loader`, and `/loader@latest` on this host are short-lived redirects (`max-age=300`), not immutable files.
+Stagepass follows strict semver: **no breaking changes within v2**; breaking changes only land in a new major (v3). The default Stagepass CDN embed is the major alias (`/loader@2`, `/modules@2`). Those aliases are short-lived redirects (`max-age=300`), not immutable files. Pin an **exact** version when a specific build must load.
 
-**Published loader and live reload:** Pin an exact version (e.g. `@2.5.1`) when a specific build must load. `live.min.js` ships since published loader **2.4.0** (`loader-v2.4.0` / `cddec72`). npm `latest` is **2.5.1**. Published **2.3.3** does **not** include it (`https://cdn.stagepass.one/loader@2.3.3/live.min.js` 404s; version scope, not a packaging bug). Do not assume an alias embed ships live reload.
+**Published loader and live reload:** `live.min.js` ships since published loader **2.4.0** (`loader-v2.4.0` / `cddec72`). npm `latest` is **2.5.1** until 2.5.2 is published. Published **2.3.3** does **not** include live reload (`https://cdn.stagepass.one/loader@2.3.3/live.min.js` 404s; version scope, not a packaging bug).
 
-### Recommended (Stagepass CDN, exact pin)
+### Recommended (Stagepass CDN, major alias)
+
+```html
+<script src="https://cdn.stagepass.one/loader@2"></script>
+<script src="https://cdn.stagepass.one/modules@2/inject.min.js"></script>
+```
+
+Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from the loader's folder URL, including short aliases such as `/loader@2` and `/loader@2.5.1`. The CDN also 302-redirects those three paths at the CDN root to `/loader@2/<file>` as a compatibility shim. Alternatively set `data-stagepass-flag-base`.
+
+### Exact pin (optional)
 
 ```html
 <script
@@ -18,15 +27,13 @@ Stagepass follows strict semver: **no breaking changes within v2**; breaking cha
 <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
 ```
 
-Always use the **full file path** for an exact pin. A short alias such as `https://cdn.stagepass.one/loader@2.5.1` or `/loader@2` serves the same loader bytes, but loader 2.5.1 still resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from the CDN root. The CDN 302-redirects those three root paths to `/loader@2/<file>` as a compatibility shim. Prefer the full file path so the chunks load from the same folder without that hop. Alternatively set `data-stagepass-flag-base` to the folder that contains those chunks.
+Use the **full file path** for an exact pin (this host has no `/dist/` segment). `data-stagepass-version` is optional; it only sets the production `?v=` default for tagged assets. Until 2.5.2 is on npm, exact-pin examples stay on the last published loader (2.5.1).
+
 
 jsDelivr is the documented alternative. Use the full `/dist/` path there:
 
 ```html
-<script
-  src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js"
-  data-stagepass-version="2.5.1"
-></script>
+<script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@stagepass/modules@2/dist/inject.min.js"></script>
 ```
 
@@ -55,7 +62,7 @@ Why `@2`:
 
 * **Compatible updates**: minor/patch releases within v2 stay backward compatible under strict semver.
 * **One intentional major bump**: breaking changes require a new major (v3) and a deliberate URL change.
-* **Exact pin when needed**: use `@2.5.0` (or any exact published version) for maximum control; prereleases are never resolved by `@2` (pin the exact beta, e.g. `@2.3.0-beta.4`).
+* **Exact pin when needed**: use `@2.5.1/loader.min.js` (or any exact published version) for maximum control; prereleases are never resolved by `@2` (pin the exact beta, e.g. `@2.3.0-beta.4`).
 
 ## Markup
 
@@ -71,7 +78,7 @@ Why `@2`:
 | `data-src` / `data-href` | asset | Production URL (legacy mode; loaded by default for all users) |
 | `data-stagepass-path` | asset | Relative path on the local `.sp` root (optional; if omitted while swapping, the filename is extracted from the production URL) |
 | `data-stagepass-v` | asset | Production appends `?v=<version>` |
-| `data-stagepass-nocache` | asset | Available in published loader **2.5.0** and later (npm `latest` is **2.5.1**). Boolean (present, or `="true"`; `="false"` off). Production only: appends `?_cb=<timestamp>` to this asset on every page view, for every visitor. Combines with `data-stagepass-v` as `?v=<version>&_cb=<timestamp>`. No effect during an active local/dev swap session or on `data-stagepass-live-src="true"` assets. |
+| `data-stagepass-nocache` | asset | Available in published loader **2.5.0** and later. Boolean (present, or `="true"`; `="false"` off). Production only: appends `?_cb=<timestamp>` to this asset on every page view, for every visitor. Query order: original query without `_cb`, then `v`, then `_cb`. No effect during an active local/dev swap session or on `data-stagepass-live-src="true"` assets. |
 | `data-stagepass-version` | loader | Default production `?v=` for assets without a per-asset override |
 | `data-stagepass-session-hours` | loader | Session lifetime in hours (default `12`) |
 | `data-stagepass-mute-console="true"` | loader | Opt-in legacy global console mute in production when no session |
@@ -119,7 +126,7 @@ While a session is active, a small pass-icon pill appears fixed in the top-right
 * Errors count `sp.error(...)`, `sp.log('error', ...)`, `console.error(...)`, uncaught errors, failed resource loads and unhandled promise rejections on the page. A missing local file shows "Local file not found (404)". When the local dev server cannot be reached, the card says "Local server not reachable", suggests `stagepass doctor` and, if Chrome blocks local network access, adds that hint.
 * Messages are always shown as plain text. Counters above 99 show `99+`.
 * The flag renders in a Shadow DOM, so site CSS cannot restyle it and it cannot restyle the site. It is keyboard accessible, and with `prefers-reduced-motion` all changes are instant.
-* The flag UI ships as two separate files, `dist/flag.min.js` and `dist/flag-card.min.js` (the card loads on first expand). Both are fetched only during a session, from the folder of the loader's own script URL, whatever the file is called (for example `https://cdn.stagepass.one/loader@2.5.1/flag.min.js`, or `/js/flag.min.js` next to a self-hosted `/js/stagepass.js`). When you self-host or copy the loader from `node_modules/@stagepass/loader/dist/`, copy both flag files (and `live.min.js`) into the same folder and everything stays on your server.
+* The flag UI ships as two separate files, `dist/flag.min.js` and `dist/flag-card.min.js` (the card loads on first expand). Both are fetched only during a session, from the folder of the loader's own script URL, whatever the file is called (for example `https://cdn.stagepass.one/loader@2/flag.min.js`, or `/js/flag.min.js` next to a self-hosted `/js/stagepass.js`). When you self-host or copy the loader from `node_modules/@stagepass/loader/dist/`, copy both flag files (and `live.min.js`) into the same folder and everything stays on your server.
 * Inlined or bundled loader: set `data-stagepass-flag-base="/assets/stagepass/"` on the script tag (or `window.stagepassFlagBase` before the loader runs). Without a script URL and without the option, the flag files still load from jsDelivr at the loader's exact version, and debug sessions show a warning.
 * With a strict Content Security Policy, `script-src` must allow the origin of the flag files (`https://cdn.stagepass.one` when you embed the Stagepass CDN; `https://cdn.jsdelivr.net` when you use the jsDelivr alternative or the inlined-loader fallback). If they are blocked, swapping still works and the console shows a warning.
 
@@ -135,7 +142,7 @@ Opt-in so production visitors load normal `src` / `href` tags (and optional SRI)
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  src="https://cdn.stagepass.one/loader@2"
   data-stagepass-live-src="true"
 ></script>
 <script
@@ -307,4 +314,4 @@ More CLI security notes: [`packages/cli/README.md`](../packages/cli/README.md).
 
 ## Dev chunks
 
-While a session is active, the loader loads `flag.min.js` from the same folder as the loader script URL (or `data-stagepass-flag-base` / jsDelivr fallback). During a **swap** session (not debug), a loader build that ships the live client then appends `live.min.js` from the same folder as `flag-card.min.js`. `live.min.js` opens EventSource to `https://<domain.sp>/__stagepass/live` for CSS cache-bust without reload and full reload on JS; it closes after the first error when `stagepass dev` is not running. Never loaded without a session. Published **2.3.3** does not include `live.min.js`; the chunk ships since published loader **2.4.0**. npm `latest` is **2.5.1**. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.1`) when a specific build must load. See [dev.md](./dev.md) and [Version pinning](#version-pinning).
+While a session is active, the loader loads `flag.min.js` from the same folder as the loader script URL (or `data-stagepass-flag-base` / jsDelivr fallback). During a **swap** session (not debug), a loader build that ships the live client then appends `live.min.js` from the same folder as `flag-card.min.js`. `live.min.js` opens EventSource to `https://<domain.sp>/__stagepass/live` for CSS cache-bust without reload and full reload on JS; it closes after the first error when `stagepass dev` is not running. Never loaded without a session. Published **2.3.3** does not include `live.min.js`; the chunk ships since published loader **2.4.0**. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version when a specific build must load. See [dev.md](./dev.md) and [Version pinning](#version-pinning).

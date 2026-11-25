@@ -112,27 +112,21 @@ stagepass link my-project --origin www.example.com --origin my-project.webflow.i
 
 ### 3. Integrate with Webflow
 
-Add the **Universal Loader** to your Webflow project settings (Project Settings > Custom Code > Head Code). Prefer an exact pin on the Stagepass CDN in production (see [Version pinning](./loader.md#version-pinning)).
+Add the **Universal Loader** to your Webflow project settings (Project Settings > Custom Code > Head Code). Default embed is the Stagepass CDN major alias (see [Version pinning](./loader.md#version-pinning)).
 
 **Option 1: CDN (Stagepass first, jsDelivr as alternative):**
 
 ```html
-<!-- Core loader only (exact pin on the Stagepass CDN) -->
-<script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
-  data-stagepass-version="2.5.1"
-></script>
+<!-- Core loader only (major alias on the Stagepass CDN) -->
+<script src="https://cdn.stagepass.one/loader@2"></script>
 ```
 
-Use the full file path so session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) load from the same folder. A short alias such as `https://cdn.stagepass.one/loader@2.5.1` or `/loader@2` serves the same loader bytes, but loader 2.5.1 still resolves chunks from the CDN root; the CDN 302-redirects those three root paths to `/loader@2/<file>` as a compatibility shim. This host has no `/dist/` segment. Or set `data-stagepass-flag-base`.
+Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from that folder. Exact pin when needed: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js` (optional `data-stagepass-version`). Or set `data-stagepass-flag-base`.
 
 jsDelivr is the documented alternative:
 
 ```html
-<script
-  src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js"
-  data-stagepass-version="2.5.1"
-></script>
+<script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js"></script>
 ```
 
 On jsDelivr always use the full `/dist/loader.min.js` path (short package URLs keep the pre-redirect location on the script element, so the chunks 404).
@@ -160,20 +154,17 @@ When you self-host, copy `flag.min.js`, `flag-card.min.js`, and `live.min.js` in
 Modules extend the core loader with additional features (e.g., programmatic injection). **Modules depend on the Loader:** include both as separate `<script>` tags in `<head>`, loader first. When using npm, `@stagepass/modules` declares `@stagepass/loader` as a peer dependency (install both).
 
 ```html
-<script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
-  data-stagepass-version="2.5.1"
-></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/cookies.min.js"></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js"></script>
+<script src="https://cdn.stagepass.one/loader@2"></script>
+<script src="https://cdn.stagepass.one/modules@2/inject.min.js"></script>
+<script src="https://cdn.stagepass.one/modules@2/cookies.min.js"></script>
+<script src="https://cdn.stagepass.one/modules@2/maintenance.min.js"></script>
 ```
 
 Or load the combined modules bundle:
 
 ```html
-<script src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/all.min.js"></script>
+<script src="https://cdn.stagepass.one/loader@2"></script>
+<script src="https://cdn.stagepass.one/modules@2/all.min.js"></script>
 ```
 
 jsDelivr alternative (full `/dist/` paths): `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js` and `https://cdn.jsdelivr.net/npm/@stagepass/modules@2/dist/inject.min.js` (or `all.min.js`).
