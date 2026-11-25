@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import chalk from 'chalk';
 import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
@@ -223,10 +224,26 @@ describe('upgrade scripts/build.mjs', () => {
     await fs.mkdir(path.join(dir, 'scripts'));
     await fs.symlink(target, path.join(dir, 'scripts', 'build.mjs'));
     const logs = [];
-    const code = await upgrade({ yes: true, siteModules: 'none', skipSite: true }, deps(dir, logs, { isTTY: true }));
-    expect(code).toBe(0);
-    expect((await fs.lstat(path.join(dir, 'scripts', 'build.mjs'))).isSymbolicLink()).toBe(true);
-    expect(await fs.readFile(target, 'utf8')).toBe('export {}\n');
-    expect(logs.join('\n')).toContain('scripts/build.mjs is a symlink; left unchanged.');
+    const prevLevel = chalk.level;
+    chalk.level = 1;
+    try {
+      const code = await upgrade(
+        { yes: true, siteModules: 'none', skipSite: true },
+        deps(dir, logs, { isTTY: true })
+      );
+      expect(code).toBe(0);
+      expect((await fs.lstat(path.join(dir, 'scripts', 'build.mjs'))).isSymbolicLink()).toBe(
+        true
+      );
+      expect(await fs.readFile(target, 'utf8')).toBe('export {}\n');
+      const out = logs.join('\n');
+      expect(out).toContain('scripts/build.mjs is a symlink; left unchanged.');
+      // Warning path uses chalk.yellow when action === 'symlink' (|| chain).
+      expect(out).toMatch(
+        /\u001b\[33m\s*scripts\/build\.mjs is a symlink; left unchanged\.\u001b\[39m/
+      );
+    } finally {
+      chalk.level = prevLevel;
+    }
   });
 });

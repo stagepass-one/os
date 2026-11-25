@@ -21,6 +21,18 @@ describe('resolveBoolFlag', () => {
 });
 
 describe('resolveNewOptions', () => {
+  it('requires a project name when non-interactive and no [name]', async () => {
+    const resolved = await resolveNewOptions(undefined, { yes: true }, {
+      isTTY: false,
+      argv: ['--yes'],
+      exec: async () => ({ stdout: '' }),
+    });
+    expect(resolved.ok).toBe(false);
+    expect(resolved.error).toBe(
+      'Project name is required (pass [name] or use a TTY).'
+    );
+  });
+
   it('applies --yes defaults without TTY', async () => {
     const resolved = await resolveNewOptions(
       'my-app',
@@ -767,6 +779,36 @@ describe('createNew robustness', () => {
       await fs.remove(tmp);
     }
   });
+
+  it('resolves a relative --dir against deps.cwd, not process.cwd()', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-cwd-'));
+    const rel = `rel-${Date.now().toString(36)}`;
+    const expected = path.join(cwd, rel);
+    const leaked = path.join(process.cwd(), rel);
+    try {
+      expect(path.resolve(cwd)).not.toBe(path.resolve(process.cwd()));
+      const code = await createNew(
+        'cwd-app',
+        { yes: true, dir: rel, git: false, modules: false },
+        {
+          isTTY: false,
+          argv: ['--yes', '--no-git', '--no-modules'],
+          templatesRoot: defaultTemplatesRoot(),
+          cwd,
+          log: () => {},
+          error: () => {},
+          exec: vi.fn(),
+          spawn: vi.fn(),
+        }
+      );
+      expect(code).toBe(0);
+      expect(await fs.pathExists(path.join(expected, 'package.json'))).toBe(true);
+      expect(await fs.pathExists(path.join(leaked, 'package.json'))).toBe(false);
+    } finally {
+      await fs.remove(cwd);
+      await fs.remove(leaked).catch(() => {});
+    }
+  });
 });
 
 describe('new: dependency ranges and types vs. published versions', () => {
@@ -1052,7 +1094,43 @@ describe('new: declared modules', () => {
       createReadline: () => rl,
       log: () => {},
     });
+    expect(r.ok).toBe(true);
     expect(r.config.siteModules).toEqual(['cookies']);
+    expect(r.config.lang).toBe('js');
+    expect(r.config.styles).toBe('css');
+  });
+
+  it('wizard: Styles css is kept (not coerced to scss)', async () => {
+    const rl = {
+      question: vi.fn(async (q) => {
+        if (/Styles \(scss\|css\)/i.test(String(q))) return 'css';
+        return '';
+      }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        siteModules: 'none',
+        git: false,
+        install: false,
+        php: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-git', '--no-install', '--no-php'],
+        exec: async () => ({ stdout: '' }),
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(true);
+    expect(r.config.styles).toBe('css');
   });
 
   it('wizard: defaults to Stagepass CDN without asking', async () => {

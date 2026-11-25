@@ -110,6 +110,15 @@ const guideCtx = (extra = {}) => ({
 });
 
 describe('buildStagepassGuide', () => {
+  it('labels lang js as JavaScript in the project section', () => {
+    const guide = buildStagepassGuide(
+      guideCtx({ lang: 'js', configFile: 'jsconfig.json' })
+    );
+    expect(guide).toMatch(/^- Language: JavaScript/m);
+    expect(guide).toContain('JavaScript');
+    expect(guide).not.toMatch(/^- Language: TypeScript/m);
+  });
+
   it('documents only the declared modules and omits PHP when php is off', () => {
     const cookies = buildStagepassGuide(guideCtx({ modules: ['cookies'], types: ['@stagepass/loader', '@stagepass/modules/cookies'] }));
     expect(cookies).toContain('sp.cookies.bake');
@@ -201,6 +210,8 @@ describe('buildStagepassGuide', () => {
     const newsletterLimit = section.match(/'newsletter' => \[[\s\S]*?'rate_limit' => (true|false),/);
     expect(newsletterLimit?.[1]).toBe('true');
     expect(section).toContain('CURLOPT_TIMEOUT');
+    expect(section).toContain("    if ($token === '') {");
+    expect(section).toContain("$token === ''");
     expect(section).toContain('if ($raw === false || $errno !== 0 || $status < 200 || $status >= 300)');
     expect(section).toContain('error_log');
     expect(section).toContain('**MUST**');

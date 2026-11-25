@@ -104,6 +104,14 @@ describe('validateOriginEntry', () => {
     });
   });
 
+  it('rejects hostnames whose labels are not DNS-safe', () => {
+    for (const bad of ['foo-.example.com', '-bad.example.com', 'foo_.example.com']) {
+      const r = validateOriginEntry(bad);
+      expect(r.ok).toBe(false);
+      expect(r.error).toBe('Origin hostname labels are not DNS-safe.');
+    }
+  });
+
   it.each([
     [' example.com'],
     ['example.com '],
