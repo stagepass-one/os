@@ -352,3 +352,120 @@ describe('Inject #164: no sp.vars read; silent without session', () => {
     expect(stagepassObj.is('local')).toBe(false);
   });
 });
+
+describe('Inject mutation survivors (stylesheet dedupe / filename / hasLoaderApi)', () => {
+  const missingLoaderWarn =
+    '[Stagepass] Core loader should be loaded before the inject module.';
+
+  beforeEach(() => {
+    document.head.innerHTML = '';
+    document.body.innerHTML = '';
+  });
+
+  it('skips re-injecting a stylesheet when a matching link href already exists', async () => {
+    vi.resetModules();
+    const stagepassObj = mockLoader();
+    await import('../index.ts');
+
+    const href = 'https://cdn.example.com/theme.css';
+    const existing = document.createElement('link');
+    existing.rel = 'stylesheet';
+    existing.setAttribute('href', href);
+    document.head.appendChild(existing);
+
+    const done = stagepassObj.inject({
+      src: href,
+      type: 'style',
+      stagepass: false,
+      position: 'head',
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const matches = Array.from(document.getElementsByTagName('link')).filter(
+      (el) => el.getAttribute('href') === href
+    );
+    expect(matches).toHaveLength(1);
+    await expect(done).resolves.toBeUndefined();
+  });
+
+  it('passes extractFilename result app.js to resolveLocalUrl (not file/js)', async () => {
+    vi.resetModules();
+    const resolveLocalUrl = vi.fn(() => '');
+    const stagepassObj = mockLoader({ resolveLocalUrl });
+    await import('../index.ts');
+
+    void stagepassObj.inject({
+      src: 'https://cdn.example.com/js/app.js',
+      position: 'head',
+    });
+    await Promise.resolve();
+
+    expect(resolveLocalUrl).toHaveBeenCalledWith('app.js');
+    expect(resolveLocalUrl).not.toHaveBeenCalledWith('file');
+    expect(resolveLocalUrl).not.toHaveBeenCalledWith('js');
+  });
+
+  it('treats env-only loader as present: no missing-loader warn, inject registered', async () => {
+    vi.resetModules();
+    delete (window as any).stagepass;
+    delete (globalThis as any).stagepass;
+    delete (window as any).sp;
+    delete (globalThis as any).sp;
+
+    const stagepassObj: any = {
+      env: () => 'production',
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      resolveLocalUrl: () => '',
+    };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
+    (window as any).stagepass = stagepassObj;
+    (globalThis as any).stagepass = stagepassObj;
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await import('../index.ts');
+    expect(warn).not.toHaveBeenCalledWith(missingLoaderWarn);
+    expect(typeof stagepassObj.inject).toBe('function');
+    warn.mockRestore();
+  });
+
+  it('treats use-only loader as present: no missing-loader warn, inject registered', async () => {
+    vi.resetModules();
+    delete (window as any).stagepass;
+    delete (globalThis as any).stagepass;
+    delete (window as any).sp;
+    delete (globalThis as any).sp;
+
+    const stagepassObj: any = {
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      resolveLocalUrl: () => '',
+      use: (_name: string, _version: string, factory: (api: any) => void) => {
+        factory(stagepassObj);
+        return true;
+      },
+    };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
+    (window as any).stagepass = stagepassObj;
+    (globalThis as any).stagepass = stagepassObj;
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await import('../index.ts');
+    expect(warn).not.toHaveBeenCalledWith(missingLoaderWarn);
+    expect(typeof stagepassObj.inject).toBe('function');
+    warn.mockRestore();
+  });
+});
