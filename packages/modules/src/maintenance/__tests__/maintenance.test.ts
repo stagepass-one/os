@@ -147,4 +147,45 @@ describe('Maintenance module', () => {
     expect(document.getElementById('stagepass-maintenance-title')?.textContent).toBe('Zwei');
     expect(document.getElementById('stagepass-maintenance-desc')?.textContent).toBe('Zwei-Text');
   });
+  it('shows a badge for a localhost session even when sp.is is not local', async () => {
+    localStorage.setItem(
+      'stagepass_domain',
+      JSON.stringify({ domain: 'localhost', expires: Date.now() + 1e8 })
+    );
+    const stagepassObj = mockSp({ is: () => false });
+    await loadMaintenance(stagepassObj);
+    stagepassObj.maintenance.enable({ title: 'Offline' });
+    expect(document.getElementById('stagepass-maintenance-overlay')).toBeNull();
+    expect(document.getElementById('stagepass-maintenance-badge')).toBeTruthy();
+  });
+
+  it('shows a badge for a localhost:port session even when sp.is is not local', async () => {
+    localStorage.setItem(
+      'stagepass_domain',
+      JSON.stringify({ domain: 'localhost:3000', expires: Date.now() + 1e8 })
+    );
+    const stagepassObj = mockSp({ is: () => false });
+    await loadMaintenance(stagepassObj);
+    stagepassObj.maintenance.enable({ title: 'Offline' });
+    expect(document.getElementById('stagepass-maintenance-overlay')).toBeNull();
+    expect(document.getElementById('stagepass-maintenance-badge')).toBeTruthy();
+  });
+
+  it('auto-enables from the last all.min.js script when currentScript is absent', async () => {
+    const first = document.createElement('script');
+    first.src = 'https://cdn.example.com/all.min.js';
+    document.head.appendChild(first);
+    const last = document.createElement('script');
+    last.src = 'https://cdn.example.com/all.min.js?v=2';
+    last.setAttribute('data-stagepass-maintenance', 'true');
+    last.setAttribute('data-stagepass-maintenance-title', 'All-bundle');
+    document.head.appendChild(last);
+    const stagepassObj = mockSp();
+    await loadMaintenance(stagepassObj);
+    expect(stagepassObj.maintenance.isActive()).toBe(true);
+    expect(document.getElementById('stagepass-maintenance-overlay')?.textContent).toContain(
+      'All-bundle'
+    );
+  });
+
 });

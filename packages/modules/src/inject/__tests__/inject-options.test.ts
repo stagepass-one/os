@@ -306,3 +306,48 @@ describe('Inject INV-6 / F-2 localhost without session', () => {
     expect(document.querySelector('script[src*="_cb="]')).toBeNull();
   });
 });
+
+  it('INV-7: falsy style entries and falsy array entries are skipped', async () => {
+    const inject = (window as any).stagepass.inject;
+    const done = inject({
+      scripts: [{ src: 'https://cdn.example.com/ok.js', id: 'ok-js' }],
+      styles: [null, { src: 'https://cdn.example.com/ok.css', id: 'ok-css' }],
+    });
+    const seen = new WeakSet<HTMLScriptElement>();
+    await Promise.resolve();
+    firePendingScriptLoads(seen);
+    await Promise.resolve();
+    expect(document.getElementById('ok-js')?.tagName).toBe('SCRIPT');
+    expect(document.getElementById('ok-css')?.tagName).toBe('LINK');
+    void done.catch(() => {});
+
+    const doneArr = inject([
+      null,
+      { src: 'https://cdn.example.com/arr.js', id: 'arr-js' },
+    ]);
+    await Promise.resolve();
+    firePendingScriptLoads(seen);
+    await Promise.resolve();
+    expect(document.getElementById('arr-js')?.tagName).toBe('SCRIPT');
+    void doneArr.catch(() => {});
+  });
+
+  it('non-string src is not injected; one-character src is kept', async () => {
+    const inject = (window as any).stagepass.inject;
+    const before = document.querySelectorAll('script[src], link[href]').length;
+    await expect(inject({ src: 123 as any })).resolves.toBeUndefined();
+    expect(document.querySelectorAll('script[src], link[href]').length).toBe(before);
+    expect(document.querySelector('script[src="123"]')).toBeNull();
+
+    const done = inject({
+      scripts: [{ src: 'x', id: 'onechar-js' }],
+      styles: [{ src: 'y', id: 'onechar-css' }],
+    });
+    const seen = new WeakSet<HTMLScriptElement>();
+    await Promise.resolve();
+    firePendingScriptLoads(seen);
+    await Promise.resolve();
+    expect(document.getElementById('onechar-js')?.getAttribute('src')).toBe('x');
+    expect(document.getElementById('onechar-css')?.getAttribute('href')).toBe('y');
+    void done.catch(() => {});
+  });
