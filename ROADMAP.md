@@ -2,39 +2,39 @@
 
 What is planned for the open source packages `@stagepass/cli`, `@stagepass/loader` and `@stagepass/modules`. This is a plan, not a promise: dates are estimates and can move. Work is tracked in GitHub issues; released changes are in [CHANGELOG.md](CHANGELOG.md).
 
-Last updated: 2026-11-19.
+Last updated: 2026-11-25.
 
 ## Current releases
 
 | Package | npm `latest` |
 | --- | --- |
-| `@stagepass/cli` | 2.5.0 |
-| `@stagepass/loader` | 2.5.0 |
+| `@stagepass/cli` | 2.6.0 |
+| `@stagepass/loader` | 2.5.1 |
 | `@stagepass/modules` | 2.2.2 |
 
 Releases follow [RELEASING.md](RELEASING.md): stable versions go straight to the npm dist-tag `latest` after a maintainer's 2FA approval.
 
-## Now (until 2026-11-29)
+## Now (2026-11-30 to 2026-12-13)
 
-- Promote workflow: retry with backoff against npm registry lag ([#124](https://github.com/stagepass-one/os/issues/124)).
-- Loader 2.5.0 follow-up: last open item before the release post ([#141](https://github.com/stagepass-one/os/issues/141)).
-
-## Next (December 2026)
-
+- Loader 2.5.2: the flag resolves its base URL correctly for short CDN URLs instead of requesting `/flag.min.js` at the CDN root ([#161](https://github.com/stagepass-one/os/issues/161)).
+- Default CDN embed: `loader@2` and `modules@2` without `data-stagepass-version`. A pinned version stays a documented option ([#162](https://github.com/stagepass-one/os/issues/162), [#163](https://github.com/stagepass-one/os/issues/163)).
+- Modules read `sp.vars` without triggering the flag's public API warning ([#164](https://github.com/stagepass-one/os/issues/164)).
+- CLI setup: extract the hostname from a pasted URL, drop the CDN choice prompt from `stagepass new`, fill the footer snippet with the production domain ([#168](https://github.com/stagepass-one/os/issues/168), [#169](https://github.com/stagepass-one/os/issues/169), [#170](https://github.com/stagepass-one/os/issues/170)).
 - Upgrade regression: fixture matrix of 2.2.7, 2.3.0 and 2.4.0 projects as a Docker script, required before every CLI release ([#143](https://github.com/stagepass-one/os/issues/143)).
 - Loader tests: kill the surviving mutants in the swap and session branches ([#142](https://github.com/stagepass-one/os/issues/142)).
 - Small docs rest: author box and the cachebust example in the loader npm README ([#138](https://github.com/stagepass-one/os/issues/138)).
-- CLI onboarding: recommend `stagepass build`, `watch` and `dev` before npm scripts ([#130](https://github.com/stagepass-one/os/issues/130), [#139](https://github.com/stagepass-one/os/issues/139)).
+- CLI onboarding: recommend `stagepass build`, `watch` and `dev` before npm scripts ([#139](https://github.com/stagepass-one/os/issues/139)).
 
 ## Then (January to February 2027)
 
-- **Modules 2.3, phase 1** ([#129](https://github.com/stagepass-one/os/issues/129)), after delivery through `cdn.stagepass.one`:
+- **Modules 2.3, phase 1** ([#129](https://github.com/stagepass-one/os/issues/129)), delivered through `cdn.stagepass.one`:
   - `webflow`: run code when Webflow.js is ready, re-init interactions after loaded content, breakpoints as events, page scoping, never twice.
   - `params`: carry UTM parameters into forms without storing anything on the device.
   - `format`: CMS dates, numbers and currencies in the local format.
   - Housekeeping: cookie events, size budget in CI, one docs page per module.
 - Public docs and hosting ([#131](https://github.com/stagepass-one/os/issues/131)), including Webflow Assets as `.js` hosting ([#32](https://github.com/stagepass-one/os/issues/32)).
 - CLI package size review ([#140](https://github.com/stagepass-one/os/issues/140)).
+- Broader CLI onboarding ([#130](https://github.com/stagepass-one/os/issues/130)).
 
 ## Later
 
