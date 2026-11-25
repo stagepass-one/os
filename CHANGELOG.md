@@ -794,6 +794,7 @@ Modules-only patch on top of 2.2.2. CLI and loader are not part of this release.
 
 - First-party modules no longer read `sp.vars`. Attach and runtime checks use the public loader API (`typeof sp.env === 'function'` / `typeof sp.use === 'function'`; inject resolves local URLs via `sp.resolveLocalUrl`). Sites that only call documented modules APIs no longer trigger the flag public-API warning `Prefer sp.env()/is()/can()/client()/on() over reading sp.vars directly.` (#164).
 - Inject logging goes through `sp.log` / `sp.warn` / `sp.error` (loader no-ops those without an active session). Modules no longer print `[Stagepass] Injected: …` on live or staging hosts just because `env` looks non-production (#164).
+- Cookies: SameSite=None without Secure still enforces Secure and falls back to `console.warn` with the same text when `sp.warn` is not a function.
 
 #### Notes
 

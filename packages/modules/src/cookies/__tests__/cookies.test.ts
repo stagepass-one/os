@@ -122,6 +122,37 @@ describe('Cookies Module', () => {
     );
   });
 
+  it('SameSite=None without Secure warns via console.warn when sp.warn is missing and still sets Secure', () => {
+    const sp = (window as any).stagepass;
+    const cookies = sp.cookies;
+    const prevWarn = sp.warn;
+    delete sp.warn;
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const cookieWrites: string[] = [];
+    const desc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+    const origSet = desc?.set;
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get: () => (desc?.get ? desc.get.call(document) : ''),
+      set: (value: string) => {
+        cookieWrites.push(String(value));
+        if (origSet) origSet.call(document, value);
+      },
+    });
+
+    try {
+      cookies.bake('ssn', '1', { path: '/', sameSite: 'None' });
+      expect(consoleWarn).toHaveBeenCalledWith(
+        'SameSite=None requires Secure=true. Enforcing Secure for cookie write.'
+      );
+      expect(cookieWrites.some((w) => /(?:^|;\s*)Secure(?:;|$)/.test(w))).toBe(true);
+    } finally {
+      consoleWarn.mockRestore();
+      sp.warn = prevWarn;
+      if (desc) Object.defineProperty(document, 'cookie', desc);
+    }
+  });
+
   it('rejects unencoded values that contain semicolons', () => {
     const cookies = (window as any).stagepass.cookies;
     expect(() => cookies.bake('x', 'a;b', { encode: false, path: '/' })).toThrow(

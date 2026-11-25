@@ -153,8 +153,14 @@
       let mustSecure = secure;
       if (sameSite === 'None' && !mustSecure) {
         mustSecure = true;
+        const msg =
+          'SameSite=None requires Secure=true. Enforcing Secure for cookie write.';
         if (typeof sp.warn === 'function') {
-          sp.warn('SameSite=None requires Secure=true. Enforcing Secure for cookie write.');
+          sp.warn(msg);
+        } else {
+          try {
+            console.warn(msg);
+          } catch (_) {}
         }
       }
       if (mustSecure) parts.push('Secure');
