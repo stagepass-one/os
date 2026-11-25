@@ -6,4 +6,4 @@
  * The published CLI ships this snapshot; it cannot read the monorepo at runtime.
  */
 export const LOADER_VERSION = "2.5.2";
-export const MODULES_VERSION = "2.2.2";
+export const MODULES_VERSION = "2.2.3";
