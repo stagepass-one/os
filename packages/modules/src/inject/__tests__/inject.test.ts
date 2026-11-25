@@ -1,23 +1,43 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+/** Public-API mock; vars is a throwing getter so accidental reads fail loudly. */
+function mockLoader(overrides: Record<string, unknown> = {}) {
+  const stagepassObj: any = {
+    env: () => 'production',
+    is: (name: string) => name === 'production',
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    resolveLocalUrl: () => '',
+    use: (_name: string, _version: string, factory: (api: any) => void) => {
+      factory(stagepassObj);
+      return true;
+    },
+    ...overrides,
+  };
+  Object.defineProperty(stagepassObj, 'vars', {
+    configurable: true,
+    get() {
+      throw new Error('sp.vars must not be read by modules');
+    },
+  });
+  (window as any).stagepass = stagepassObj;
+  (globalThis as any).stagepass = stagepassObj;
+  (window as any).sp = stagepassObj;
+  (globalThis as any).sp = stagepassObj;
+  return stagepassObj;
+}
+
 describe('Injector Module', () => {
   beforeEach(() => {
     // Reset DOM
     document.head.innerHTML = '';
     document.body.innerHTML = '';
-    
-    // Setup Stagepass vars mock (both window.stagepass and global stagepass)
-    const stagepassObj = {
-      vars: {
-        isLocal: true,
-        env: 'local',
-        domain: 'test.sp',
-        timestamp: 1234567890,
-        version: '1.0.3'
-      }
-    };
-    (window as any).stagepass = stagepassObj;
-    (globalThis as any).stagepass = stagepassObj;
+
+    mockLoader({
+      env: () => 'local',
+      is: (name: string) => name === 'local',
+    });
   });
 
   describe('Type detection', () => {
@@ -163,15 +183,13 @@ describe('Injector Module', () => {
   });
 
   describe('Error handling', () => {
-    it('should throw error if stagepass vars are not available', () => {
+    it('detects missing loader via public API, not sp.vars', () => {
       delete (window as any).stagepass;
-      
-      expect(() => {
-        const sp = (window as any).stagepass;
-        if (!sp || !sp.vars) {
-          throw new Error('Stagepass core loader must be loaded before modules');
-        }
-      }).toThrow('Stagepass core loader must be loaded before modules');
+      delete (globalThis as any).stagepass;
+      const sp = (window as any).stagepass;
+      const hasLoader =
+        !!(sp && (typeof sp.env === 'function' || typeof sp.use === 'function'));
+      expect(hasLoader).toBe(false);
     });
   });
 });
@@ -186,23 +204,11 @@ describe('Inject INV-6 / F-3 source resolution via inject API', () => {
 
   it('INV-6 / F-3: empty resolveLocalUrl keeps production src (no invented localhost ?_cb=)', async () => {
     vi.resetModules();
-    const stagepassObj: any = {
-      vars: {
-        isLocal: true,
-        env: 'local',
-        domain: 'localhost',
-        timestamp: 999001,
-        version: '2.2.2',
-      },
-      warn: vi.fn(),
+    const stagepassObj = mockLoader({
+      env: () => 'local',
+      is: (n: string) => n === 'local',
       resolveLocalUrl: () => '',
-      use: (_name: string, _version: string, factory: (api: any) => void) => {
-        factory(stagepassObj);
-        return true;
-      },
-    };
-    (window as any).stagepass = stagepassObj;
-    (globalThis as any).stagepass = stagepassObj;
+    });
     await import('../index.ts');
     void stagepassObj.inject({ src: prodSrc, position: 'head' });
     const el = document.querySelector(`script[src="${prodSrc}"]`) as HTMLScriptElement;
@@ -214,23 +220,11 @@ describe('Inject INV-6 / F-3 source resolution via inject API', () => {
   it('INV-6 / F-3: non-empty resolveLocalUrl uses that local URL', async () => {
     vi.resetModules();
     const localUrl = 'https://app.sp/lib.js?_cb=1';
-    const stagepassObj: any = {
-      vars: {
-        isLocal: true,
-        env: 'local',
-        domain: 'app.sp',
-        timestamp: 999002,
-        version: '2.2.2',
-      },
-      warn: vi.fn(),
+    const stagepassObj = mockLoader({
+      env: () => 'local',
+      is: (n: string) => n === 'local',
       resolveLocalUrl: () => localUrl,
-      use: (_name: string, _version: string, factory: (api: any) => void) => {
-        factory(stagepassObj);
-        return true;
-      },
-    };
-    (window as any).stagepass = stagepassObj;
-    (globalThis as any).stagepass = stagepassObj;
+    });
     await import('../index.ts');
     void stagepassObj.inject({ src: prodSrc, position: 'head' });
     const el = document.querySelector(`script[src="${localUrl}"]`) as HTMLScriptElement;
@@ -240,22 +234,11 @@ describe('Inject INV-6 / F-3 source resolution via inject API', () => {
 
   it('INV-6 / F-3: missing resolveLocalUrl keeps production src', async () => {
     vi.resetModules();
-    const stagepassObj: any = {
-      vars: {
-        isLocal: true,
-        env: 'local',
-        domain: 'localhost',
-        timestamp: 999003,
-        version: '2.2.2',
-      },
-      warn: vi.fn(),
-      use: (_name: string, _version: string, factory: (api: any) => void) => {
-        factory(stagepassObj);
-        return true;
-      },
-    };
-    (window as any).stagepass = stagepassObj;
-    (globalThis as any).stagepass = stagepassObj;
+    const stagepassObj = mockLoader({
+      env: () => 'local',
+      is: (n: string) => n === 'local',
+    });
+    delete stagepassObj.resolveLocalUrl;
     await import('../index.ts');
     void stagepassObj.inject({ src: prodSrc, position: 'head' });
     const el = document.querySelector(`script[src="${prodSrc}"]`) as HTMLScriptElement;
@@ -263,25 +246,13 @@ describe('Inject INV-6 / F-3 source resolution via inject API', () => {
     expect(document.querySelector('script[src*="_cb="]')).toBeNull();
   });
 
-  it('INV-6 / F-3: stagepass false keeps production src when isLocal', async () => {
+  it('INV-6 / F-3: stagepass false keeps production src when swap would apply', async () => {
     vi.resetModules();
-    const stagepassObj: any = {
-      vars: {
-        isLocal: true,
-        env: 'local',
-        domain: 'app.sp',
-        timestamp: 999004,
-        version: '2.2.2',
-      },
-      warn: vi.fn(),
+    const stagepassObj = mockLoader({
+      env: () => 'local',
+      is: (n: string) => n === 'local',
       resolveLocalUrl: () => 'https://app.sp/lib.js',
-      use: (_name: string, _version: string, factory: (api: any) => void) => {
-        factory(stagepassObj);
-        return true;
-      },
-    };
-    (window as any).stagepass = stagepassObj;
-    (globalThis as any).stagepass = stagepassObj;
+    });
     await import('../index.ts');
     void stagepassObj.inject({ src: prodSrc, stagepass: false, position: 'head' });
     const el = document.querySelector(`script[src="${prodSrc}"]`) as HTMLScriptElement;
@@ -293,23 +264,7 @@ describe('Inject INV-6 / F-3 source resolution via inject API', () => {
 describe('Inject INV-8 / F-4 body-start position via inject API', () => {
   it("INV-8 / F-4: position 'body-start' with existing body child is firstElementChild", async () => {
     vi.resetModules();
-    const stagepassObj: any = {
-      vars: {
-        isLocal: false,
-        env: 'production',
-        domain: 'example.com',
-        timestamp: 0,
-        version: '2.2.2',
-      },
-      warn: vi.fn(),
-      resolveLocalUrl: () => '',
-      use: (_name: string, _version: string, factory: (api: any) => void) => {
-        factory(stagepassObj);
-        return true;
-      },
-    };
-    (window as any).stagepass = stagepassObj;
-    (globalThis as any).stagepass = stagepassObj;
+    const stagepassObj = mockLoader();
     await import('../index.ts');
 
     document.head.innerHTML = '';
@@ -328,5 +283,189 @@ describe('Inject INV-8 / F-4 body-start position via inject API', () => {
     expect(injected).toBeTruthy();
     expect(document.body.firstElementChild).toBe(injected);
     expect(injected.nextElementSibling).toBe(existing);
+  });
+});
+
+describe('Inject #164: no sp.vars read; silent without session', () => {
+  function fireLoad(src: string) {
+    const el = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement;
+    expect(el).toBeTruthy();
+    if (typeof el.onload === 'function') el.onload(new Event('load'));
+  }
+
+  it('attach + inject never reads sp.vars (throwing getter stays quiet)', async () => {
+    vi.resetModules();
+    document.head.innerHTML = '';
+    document.body.innerHTML = '';
+    const stagepassObj = mockLoader({
+      env: () => 'staging',
+      is: (n: string) => n === 'staging',
+    });
+    await expect(import('../index.ts')).resolves.toBeDefined();
+    expect(typeof stagepassObj.inject).toBe('function');
+    void stagepassObj.inject({
+      src: 'https://cdn.example.com/a.js',
+      position: 'head',
+    });
+    fireLoad('https://cdn.example.com/a.js');
+  });
+
+  it('without session, inject routes through sp.log (no console.log)', async () => {
+    vi.resetModules();
+    document.head.innerHTML = '';
+    document.body.innerHTML = '';
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const stagepassObj = mockLoader({
+      env: () => 'staging',
+      is: (n: string) => n === 'staging',
+      // Simulate loader mute: log/warn/error are no-ops without a session
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    });
+    await import('../index.ts');
+    void stagepassObj.inject({
+      src: 'https://cdn.example.com/iframeResizer.min.js',
+      position: 'head',
+    });
+    fireLoad('https://cdn.example.com/iframeResizer.min.js');
+    expect(stagepassObj.log).toHaveBeenCalledWith(
+      expect.stringContaining('Injected:')
+    );
+    expect(consoleLog).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleLog.mockRestore();
+    consoleError.mockRestore();
+  });
+
+  it('uses sp.env / sp.is for env-like decisions (public API present)', async () => {
+    vi.resetModules();
+    const env = vi.fn(() => 'production');
+    const is = vi.fn((n: string) => n === 'production');
+    const stagepassObj = mockLoader({ env, is });
+    await import('../index.ts');
+    expect(typeof stagepassObj.env).toBe('function');
+    expect(typeof stagepassObj.is).toBe('function');
+    expect(stagepassObj.env()).toBe('production');
+    expect(stagepassObj.is('production')).toBe(true);
+    expect(stagepassObj.is('local')).toBe(false);
+  });
+});
+
+describe('Inject mutation survivors (stylesheet dedupe / filename / hasLoaderApi)', () => {
+  const missingLoaderWarn =
+    '[Stagepass] Core loader should be loaded before the inject module.';
+
+  beforeEach(() => {
+    document.head.innerHTML = '';
+    document.body.innerHTML = '';
+  });
+
+  it('skips re-injecting a stylesheet when a matching link href already exists', async () => {
+    vi.resetModules();
+    const stagepassObj = mockLoader();
+    await import('../index.ts');
+
+    const href = 'https://cdn.example.com/theme.css';
+    const existing = document.createElement('link');
+    existing.rel = 'stylesheet';
+    existing.setAttribute('href', href);
+    document.head.appendChild(existing);
+
+    const done = stagepassObj.inject({
+      src: href,
+      type: 'style',
+      stagepass: false,
+      position: 'head',
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const matches = Array.from(document.getElementsByTagName('link')).filter(
+      (el) => el.getAttribute('href') === href
+    );
+    expect(matches).toHaveLength(1);
+    await expect(done).resolves.toBeUndefined();
+  });
+
+  it('passes extractFilename result app.js to resolveLocalUrl (not file/js)', async () => {
+    vi.resetModules();
+    const resolveLocalUrl = vi.fn(() => '');
+    const stagepassObj = mockLoader({ resolveLocalUrl });
+    await import('../index.ts');
+
+    void stagepassObj.inject({
+      src: 'https://cdn.example.com/js/app.js',
+      position: 'head',
+    });
+    await Promise.resolve();
+
+    expect(resolveLocalUrl).toHaveBeenCalledWith('app.js');
+    expect(resolveLocalUrl).not.toHaveBeenCalledWith('file');
+    expect(resolveLocalUrl).not.toHaveBeenCalledWith('js');
+  });
+
+  it('treats env-only loader as present: no missing-loader warn, inject registered', async () => {
+    vi.resetModules();
+    delete (window as any).stagepass;
+    delete (globalThis as any).stagepass;
+    delete (window as any).sp;
+    delete (globalThis as any).sp;
+
+    const stagepassObj: any = {
+      env: () => 'production',
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      resolveLocalUrl: () => '',
+    };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
+    (window as any).stagepass = stagepassObj;
+    (globalThis as any).stagepass = stagepassObj;
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await import('../index.ts');
+    expect(warn).not.toHaveBeenCalledWith(missingLoaderWarn);
+    expect(typeof stagepassObj.inject).toBe('function');
+    warn.mockRestore();
+  });
+
+  it('treats use-only loader as present: no missing-loader warn, inject registered', async () => {
+    vi.resetModules();
+    delete (window as any).stagepass;
+    delete (globalThis as any).stagepass;
+    delete (window as any).sp;
+    delete (globalThis as any).sp;
+
+    const stagepassObj: any = {
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      resolveLocalUrl: () => '',
+      use: (_name: string, _version: string, factory: (api: any) => void) => {
+        factory(stagepassObj);
+        return true;
+      },
+    };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
+    (window as any).stagepass = stagepassObj;
+    (globalThis as any).stagepass = stagepassObj;
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await import('../index.ts');
+    expect(warn).not.toHaveBeenCalledWith(missingLoaderWarn);
+    expect(typeof stagepassObj.inject).toBe('function');
+    warn.mockRestore();
   });
 });

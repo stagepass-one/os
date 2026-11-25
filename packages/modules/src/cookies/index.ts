@@ -44,6 +44,11 @@
     return sp;
   }
 
+  /** Loader present via public API (never read sp.vars). */
+  function hasLoaderApi(sp: any): boolean {
+    return !!(sp && (typeof sp.env === 'function' || typeof sp.use === 'function'));
+  }
+
   function warnMissingLoader(): void {
     try {
       console.warn(
@@ -148,8 +153,14 @@
       let mustSecure = secure;
       if (sameSite === 'None' && !mustSecure) {
         mustSecure = true;
+        const msg =
+          'SameSite=None requires Secure=true. Enforcing Secure for cookie write.';
         if (typeof sp.warn === 'function') {
-          sp.warn('SameSite=None requires Secure=true. Enforcing Secure for cookie write.');
+          sp.warn(msg);
+        } else {
+          try {
+            console.warn(msg);
+          } catch (_) {}
         }
       }
       if (mustSecure) parts.push('Secure');
@@ -326,14 +337,14 @@
     sp.consent = consentApi;
   }
 
-  // 2.0.0 behaviour: always attach cookies (even without loader vars)
+  // 2.0.0 behaviour: always attach cookies (even without loader)
   const sp = getStagepassObject() || {};
-  if (!sp.vars) {
+  if (!hasLoaderApi(sp)) {
     warnMissingLoader();
   }
 
   const MODULE_VERSION = '2.0.0';
-  if (sp.vars && typeof sp.use === 'function') {
+  if (typeof sp.use === 'function') {
     sp.use('cookies', MODULE_VERSION, register);
   } else {
     register(sp);

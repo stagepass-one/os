@@ -2,20 +2,23 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Cookies Module', () => {
   beforeAll(async () => {
-    const stagepassObj = {
-      vars: {
-        isLocal: true,
-        env: 'local',
-        domain: 'test.sp',
-        timestamp: 1234567890,
-        version: '2.0.0',
-      },
+    const stagepassObj: any = {
+      env: () => 'local',
+      is: (n: string) => n === 'local',
+      log: vi.fn(),
       warn: vi.fn(),
-      use: (name: string, version: string, factory: (api: any) => void) => {
+      error: vi.fn(),
+      use: (_name: string, _version: string, factory: (api: any) => void) => {
         factory(stagepassObj);
         return true;
       },
     };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
     (window as any).stagepass = stagepassObj;
     (globalThis as any).stagepass = stagepassObj;
     await import('../index.ts');
@@ -119,6 +122,37 @@ describe('Cookies Module', () => {
     );
   });
 
+  it('SameSite=None without Secure warns via console.warn when sp.warn is missing and still sets Secure', () => {
+    const sp = (window as any).stagepass;
+    const cookies = sp.cookies;
+    const prevWarn = sp.warn;
+    delete sp.warn;
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const cookieWrites: string[] = [];
+    const desc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+    const origSet = desc?.set;
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get: () => (desc?.get ? desc.get.call(document) : ''),
+      set: (value: string) => {
+        cookieWrites.push(String(value));
+        if (origSet) origSet.call(document, value);
+      },
+    });
+
+    try {
+      cookies.bake('ssn', '1', { path: '/', sameSite: 'None' });
+      expect(consoleWarn).toHaveBeenCalledWith(
+        'SameSite=None requires Secure=true. Enforcing Secure for cookie write.'
+      );
+      expect(cookieWrites.some((w) => /(?:^|;\s*)Secure(?:;|$)/.test(w))).toBe(true);
+    } finally {
+      consoleWarn.mockRestore();
+      sp.warn = prevWarn;
+      if (desc) Object.defineProperty(document, 'cookie', desc);
+    }
+  });
+
   it('rejects unencoded values that contain semicolons', () => {
     const cookies = (window as any).stagepass.cookies;
     expect(() => cookies.bake('x', 'a;b', { encode: false, path: '/' })).toThrow(
@@ -196,6 +230,157 @@ describe('Cookies Module without loader', () => {
     expect(warn).toHaveBeenCalled();
     expect(typeof (window as any).stagepass.cookies.bake).toBe('function');
     expect((window as any).stagepass.cookie).toBe((window as any).stagepass.cookies);
+    warn.mockRestore();
+  });
+});
+
+describe('Cookies mutation survivors (secure ternary / hasLoaderApi)', () => {
+  const missingLoaderWarn =
+    '[Stagepass] Core loader should be loaded before the cookies module.';
+
+  function captureCookieWrites(run: () => void): string[] {
+    const cookieWrites: string[] = [];
+    const desc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+    const origSet = desc?.set;
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get: () => (desc?.get ? desc.get.call(document) : ''),
+      set: (value: string) => {
+        cookieWrites.push(String(value));
+        if (origSet) origSet.call(document, value);
+      },
+    });
+    try {
+      run();
+    } finally {
+      if (desc) Object.defineProperty(document, 'cookie', desc);
+    }
+    return cookieWrites;
+  }
+
+  function withProtocol(protocol: 'http:' | 'https:', run: () => void): void {
+    const original = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        protocol,
+        href: `${protocol}//example.com/`,
+        hostname: 'example.com',
+        host: 'example.com',
+        pathname: '/',
+        search: '',
+        hash: '',
+      },
+    });
+    try {
+      run();
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: original,
+      });
+    }
+  }
+
+  it('honours secure:false on https (no Secure) and secure:true on http (Secure)', async () => {
+    vi.resetModules();
+    const stagepassObj: any = {
+      env: () => 'local',
+      is: (n: string) => n === 'local',
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      use: (_name: string, _version: string, factory: (api: any) => void) => {
+        factory(stagepassObj);
+        return true;
+      },
+    };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
+    (window as any).stagepass = stagepassObj;
+    (globalThis as any).stagepass = stagepassObj;
+    await import('../index.ts');
+    const cookies = stagepassObj.cookies;
+
+    withProtocol('https:', () => {
+      const writes = captureCookieWrites(() => {
+        cookies.bake('plain', '1', { path: '/', secure: false, sameSite: 'Lax' });
+      });
+      expect(writes.length).toBeGreaterThan(0);
+      expect(writes.some((w) => /(?:^|;\s*)Secure(?:;|$)/.test(w))).toBe(false);
+    });
+
+    withProtocol('http:', () => {
+      const writes = captureCookieWrites(() => {
+        cookies.bake('forced', '1', { path: '/', secure: true, sameSite: 'Lax' });
+      });
+      expect(writes.length).toBeGreaterThan(0);
+      expect(writes.some((w) => /(?:^|;\s*)Secure(?:;|$)/.test(w))).toBe(true);
+    });
+  });
+
+  it('treats env-only loader as present: no missing-loader warn, bake registered', async () => {
+    vi.resetModules();
+    delete (window as any).stagepass;
+    delete (globalThis as any).stagepass;
+    delete (window as any).sp;
+    delete (globalThis as any).sp;
+
+    const stagepassObj: any = {
+      env: () => 'production',
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
+    (window as any).stagepass = stagepassObj;
+    (globalThis as any).stagepass = stagepassObj;
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await import('../index.ts');
+    expect(warn).not.toHaveBeenCalledWith(missingLoaderWarn);
+    expect(typeof stagepassObj.cookies?.bake).toBe('function');
+    warn.mockRestore();
+  });
+
+  it('treats use-only loader as present: no missing-loader warn, bake registered', async () => {
+    vi.resetModules();
+    delete (window as any).stagepass;
+    delete (globalThis as any).stagepass;
+    delete (window as any).sp;
+    delete (globalThis as any).sp;
+
+    const stagepassObj: any = {
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      use: (_name: string, _version: string, factory: (api: any) => void) => {
+        factory(stagepassObj);
+        return true;
+      },
+    };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
+    (window as any).stagepass = stagepassObj;
+    (globalThis as any).stagepass = stagepassObj;
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await import('../index.ts');
+    expect(warn).not.toHaveBeenCalledWith(missingLoaderWarn);
+    expect(typeof stagepassObj.cookies?.bake).toBe('function');
     warn.mockRestore();
   });
 });

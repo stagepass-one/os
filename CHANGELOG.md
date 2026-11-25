@@ -786,6 +786,20 @@ Stable release of the 2.0 line (same behaviour as `2.0.0-beta.1`).
 
 ## `@stagepass/modules`
 
+### [2.2.3] - 2026-11-25
+
+Modules-only patch on top of 2.2.2. CLI and loader are not part of this release. Not published yet (no tag, no npm).
+
+#### Fixed
+
+- First-party modules no longer read `sp.vars`. Attach and runtime checks use the public loader API (`typeof sp.env === 'function'` / `typeof sp.use === 'function'`; inject resolves local URLs via `sp.resolveLocalUrl`). Sites that only call documented modules APIs no longer trigger the flag public-API warning `Prefer sp.env()/is()/can()/client()/on() over reading sp.vars directly.` (#164).
+- Inject logging goes through `sp.log` / `sp.warn` / `sp.error` (loader no-ops those without an active session). Modules no longer print `[Stagepass] Injected: …` on live or staging hosts just because `env` looks non-production (#164).
+- Cookies: SameSite=None without Secure still enforces Secure and falls back to `console.warn` with the same text when `sp.warn` is not a function.
+
+#### Notes
+
+- `MODULE_VERSION` strings passed to `sp.use` stay `2.0.0` (module API id, not the package version).
+
 ### [2.2.2] - 2026-11-07
 
 Published on npm 2026-11-07T13:48Z. Already on dist-tag `next` before promotion to `latest`. No further republish, tag, or version bump for the promotion. 2.2.1 was never published; its changes shipped in 2.2.2.

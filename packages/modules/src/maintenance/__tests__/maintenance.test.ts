@@ -24,15 +24,30 @@ describe('Maintenance module', () => {
     });
   });
 
-  it('registers enable/disable/isActive and shows overlay for visitors', async () => {
+  function mockSp(overrides: Record<string, unknown> = {}) {
     const stagepassObj: any = {
-      vars: { isLocal: false, env: 'production', domain: 'example.com', timestamp: 0, version: '2.0.0' },
+      env: () => 'production',
       is: () => false,
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
       use: (_n: string, _v: string, factory: (api: any) => void) => {
         factory(stagepassObj);
         return true;
       },
+      ...overrides,
     };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
+    return stagepassObj;
+  }
+
+  it('registers enable/disable/isActive and shows overlay for visitors', async () => {
+    const stagepassObj = mockSp();
     await loadMaintenance(stagepassObj);
 
     expect(stagepassObj.maintenance.isActive()).toBe(false);
@@ -59,14 +74,10 @@ describe('Maintenance module', () => {
       'stagepass_domain',
       JSON.stringify({ domain: 'my-project.sp', expires: Date.now() + 1e8 })
     );
-    const stagepassObj: any = {
-      vars: { isLocal: true, env: 'local', domain: 'my-project.sp', timestamp: 1, version: '2.0.0' },
+    const stagepassObj = mockSp({
+      env: () => 'local',
       is: (n: string) => n === 'local',
-      use: (_n: string, _v: string, factory: (api: any) => void) => {
-        factory(stagepassObj);
-        return true;
-      },
-    };
+    });
     await loadMaintenance(stagepassObj);
     stagepassObj.maintenance.enable({ title: 'Offline' });
     expect(document.getElementById('stagepass-maintenance-overlay')).toBeNull();
@@ -87,14 +98,7 @@ describe('Maintenance module', () => {
       get: () => script,
     });
 
-    const stagepassObj: any = {
-      vars: { isLocal: false, env: 'production', domain: 'example.com', timestamp: 0, version: '2.0.0' },
-      is: () => false,
-      use: (_n: string, _v: string, factory: (api: any) => void) => {
-        factory(stagepassObj);
-        return true;
-      },
-    };
+    const stagepassObj = mockSp();
     await loadMaintenance(stagepassObj);
     expect(stagepassObj.maintenance.isActive()).toBe(true);
     expect(document.getElementById('stagepass-maintenance-overlay')?.textContent).toContain(
@@ -110,15 +114,16 @@ describe('Maintenance module', () => {
     warn.mockRestore();
   });
 
+  it('registers via public API without reading sp.vars', async () => {
+    const stagepassObj = mockSp();
+    await loadMaintenance(stagepassObj);
+    expect(typeof stagepassObj.maintenance.enable).toBe('function');
+    expect(typeof stagepassObj.env).toBe('function');
+    expect(typeof stagepassObj.is).toBe('function');
+  });
+
   it('enable() without options keeps last title/text; disable() does not reset them', async () => {
-    const stagepassObj: any = {
-      vars: { isLocal: false, env: 'production', domain: 'example.com', timestamp: 0, version: '2.0.0' },
-      is: () => false,
-      use: (_n: string, _v: string, factory: (api: any) => void) => {
-        factory(stagepassObj);
-        return true;
-      },
-    };
+    const stagepassObj = mockSp();
     await loadMaintenance(stagepassObj);
 
     stagepassObj.maintenance.enable();
@@ -142,4 +147,45 @@ describe('Maintenance module', () => {
     expect(document.getElementById('stagepass-maintenance-title')?.textContent).toBe('Zwei');
     expect(document.getElementById('stagepass-maintenance-desc')?.textContent).toBe('Zwei-Text');
   });
+  it('shows a badge for a localhost session even when sp.is is not local', async () => {
+    localStorage.setItem(
+      'stagepass_domain',
+      JSON.stringify({ domain: 'localhost', expires: Date.now() + 1e8 })
+    );
+    const stagepassObj = mockSp({ is: () => false });
+    await loadMaintenance(stagepassObj);
+    stagepassObj.maintenance.enable({ title: 'Offline' });
+    expect(document.getElementById('stagepass-maintenance-overlay')).toBeNull();
+    expect(document.getElementById('stagepass-maintenance-badge')).toBeTruthy();
+  });
+
+  it('shows a badge for a localhost:port session even when sp.is is not local', async () => {
+    localStorage.setItem(
+      'stagepass_domain',
+      JSON.stringify({ domain: 'localhost:3000', expires: Date.now() + 1e8 })
+    );
+    const stagepassObj = mockSp({ is: () => false });
+    await loadMaintenance(stagepassObj);
+    stagepassObj.maintenance.enable({ title: 'Offline' });
+    expect(document.getElementById('stagepass-maintenance-overlay')).toBeNull();
+    expect(document.getElementById('stagepass-maintenance-badge')).toBeTruthy();
+  });
+
+  it('auto-enables from the last all.min.js script when currentScript is absent', async () => {
+    const first = document.createElement('script');
+    first.src = 'https://cdn.example.com/all.min.js';
+    document.head.appendChild(first);
+    const last = document.createElement('script');
+    last.src = 'https://cdn.example.com/all.min.js?v=2';
+    last.setAttribute('data-stagepass-maintenance', 'true');
+    last.setAttribute('data-stagepass-maintenance-title', 'All-bundle');
+    document.head.appendChild(last);
+    const stagepassObj = mockSp();
+    await loadMaintenance(stagepassObj);
+    expect(stagepassObj.maintenance.isActive()).toBe(true);
+    expect(document.getElementById('stagepass-maintenance-overlay')?.textContent).toContain(
+      'All-bundle'
+    );
+  });
+
 });

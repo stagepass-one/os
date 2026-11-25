@@ -18,7 +18,8 @@
       (globalThis as any).stagepass ||
       (window as any).sp ||
       (globalThis as any).sp;
-    if (!sp || !sp.vars) {
+    // Require a public loader method — never read sp.vars
+    if (!sp || (typeof sp.env !== 'function' && typeof sp.use !== 'function')) {
       try {
         console.warn(
           '[Stagepass] Core loader must be loaded before the maintenance module. Skipping registration.'
