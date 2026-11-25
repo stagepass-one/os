@@ -86,9 +86,9 @@ Pin the **exact** published version (ranges like `@2` will not pick up a prerele
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
+  src="https://cdn.stagepass.one/loader@2.5.2/loader.min.js"
 ></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
+<script src="https://cdn.stagepass.one/modules@2.2.3/inject.min.js"></script>
 ```
 
 Test on a generic Webflow staging host such as `my-project.webflow.io` (never a real customer domain). Confirm loader/modules behaviour before promoting to stable.
@@ -108,7 +108,7 @@ git push origin modules-v2.2.0
 
 Repeat the tag (or `workflow_dispatch`) once per package you intend to stage. CI stages a stable version on `latest`. One approval with 2FA publishes that stable stage as `latest`. There is no promotion step and no `next` channel until further notice.
 
-Note: generated projects depend on `^2` for loader/modules (`PACKAGES_MAJOR_RANGE` in `packages/cli/src/lib/registry.js`), the same major as the jsDelivr pin `@2`. The Stagepass CDN default in published CLI 2.6.0 uses an exact pin (`SNIPPET_LOADER_VERSION` 2.5.1 on master after this publish; the 2.6.0 tarball was frozen with 2.5.0). That is a **dependency** constraint, not a same-version or single-workflow rule. If a newly scaffolded project needs a loader or modules version that is not yet approved, `npm install` can fail with `ETARGET`. Stage and approve those packages separately (own bump, own tag, own run, own stage ID) before relying on the scaffold; do not treat this as “always bump and approve all three together”.
+Note: generated projects depend on `^2` for loader/modules (`PACKAGES_MAJOR_RANGE` in `packages/cli/src/lib/registry.js`), the same major as the jsDelivr pin `@2`. The Stagepass CDN default in published CLI 2.7.0 uses the major alias `@2`. Documented exact pins are `SNIPPET_LOADER_VERSION` 2.5.2 and `SNIPPET_MODULES_VERSION` 2.2.3. That is a **dependency** constraint, not a same-version or single-workflow rule. If a newly scaffolded project needs a loader or modules version that is not yet approved, `npm install` can fail with `ETARGET`. Stage and approve those packages separately (own bump, own tag, own run, own stage ID) before relying on the scaffold; do not treat this as “always bump and approve all three together”.
 
 ## 3. Verify dist-tags / manual dist-tag fixes
 

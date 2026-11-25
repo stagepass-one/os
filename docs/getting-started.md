@@ -121,7 +121,7 @@ Add the **Universal Loader** to your Webflow project settings (Project Settings 
 <script src="https://cdn.stagepass.one/loader@2"></script>
 ```
 
-Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from that folder. Exact pin when needed: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js` (optional `data-stagepass-version`). Or set `data-stagepass-flag-base`.
+Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from that folder. Exact pin when needed: `https://cdn.stagepass.one/loader@2.5.2/loader.min.js` (optional `data-stagepass-version`). Or set `data-stagepass-flag-base`.
 
 jsDelivr is the documented alternative:
 
@@ -220,7 +220,7 @@ Go to your live Webflow URL and append the parameter:
 
 **Browser prerequisites:** for this public-origin → `.sp` (loopback) path, allow Chrome **Local network** / **Loopback network** for that live site when prompted (or in Site settings if previously blocked), and trust the Stagepass local CA (`stagepass certs check` / `certs trust`). See [troubleshooting.md](./troubleshooting.md#public-origin-to-sp-err_failed).
 
-For CSS hot swap and JS full reload while you edit, run `stagepass dev` in the linked project (published CLI 2.3.1 and later). Live reload / `live.min.js` ships since published loader **2.4.0** (npm `latest` is **2.5.1**; pin `@2.5.1`). Published **2.3.3** does not include it. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.1`) when a specific build must load (see [dev.md](./dev.md)).
+For CSS hot swap and JS full reload while you edit, run `stagepass dev` in the linked project (published CLI 2.3.1 and later). Live reload / `live.min.js` ships since published loader **2.4.0** (npm `latest` is **2.5.2**; pin `@2.5.2`). Published **2.3.3** does not include it. `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.2`) when a specific build must load (see [dev.md](./dev.md)).
 
 ## Session modes
 

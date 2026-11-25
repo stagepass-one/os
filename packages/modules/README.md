@@ -139,7 +139,7 @@ Off unless `data-stagepass-maintenance="true"` on the module script tag (or enab
 
 ```html
 <script
-  src="https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js"
+  src="https://cdn.stagepass.one/modules@2.2.3/maintenance.min.js"
   data-stagepass-maintenance="true"
   data-stagepass-maintenance-title="We will be back soon"
   data-stagepass-maintenance-text="Please check again shortly."

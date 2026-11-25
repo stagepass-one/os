@@ -17,8 +17,8 @@ export const STAGEPASS_PACKAGE_CDN = STAGEPASS_CDN_ORIGIN;
  * automatically when the monorepo is ahead of npm.
  * Default generated snippets use {@link SNIPPET_MAJOR_PIN}, not these.
  */
-export const SNIPPET_LOADER_VERSION = '2.5.1';
-export const SNIPPET_MODULES_VERSION = '2.2.2';
+export const SNIPPET_LOADER_VERSION = '2.5.2';
+export const SNIPPET_MODULES_VERSION = '2.2.3';
 export const SNIPPET_MAJOR_PIN = '@2';
 
 /**

@@ -35,9 +35,9 @@ Packages are versioned independently: `@stagepass/cli`, `@stagepass/loader`, `@s
 
 ## `@stagepass/cli`
 
-### [2.7.0] - Unreleased
+### [2.7.0] - 2026-11-25
 
-Minor release on top of 2.6.0 (changed defaults). Released together with `@stagepass/loader` 2.5.2 and `@stagepass/modules` 2.2.3 (separate packages, own tags). Not published yet (no tag, no npm).
+Minor release on top of 2.6.0 (changed defaults). Released together with `@stagepass/loader` 2.5.2 and `@stagepass/modules` 2.2.3 (separate packages, own tags). Published on npm as `@stagepass/cli@2.7.0`. **Fill after `npm stage approve`:** date and time Europe/Berlin, source tag `cli-v2.7.0` (`GITHEAD`), npm package shasum `TODO`, integrity `TODO`, tarball sha256 `TODO`. npm dist-tag `latest` is `@stagepass/cli@2.7.0`.
 
 #### Changed
 
@@ -462,9 +462,9 @@ Stable release of the 2.0 line (same behaviour as `2.0.0-beta.1`).
 
 ## `@stagepass/loader`
 
-### [2.5.2] - Unreleased
+### [2.5.2] - 2026-11-25
 
-Loader-only patch on top of 2.5.1. CLI and modules are not part of this release. This PR does not tag or publish to npm.
+Loader patch on top of 2.5.1. Released together with `@stagepass/modules` 2.2.3 and `@stagepass/cli` 2.7.0 (separate packages, own tags). Published on npm as `@stagepass/loader@2.5.2`. **Fill after `npm stage approve`:** date and time Europe/Berlin, source tag `loader-v2.5.2` (`GITHEAD`), npm package shasum `TODO`, integrity `TODO`, tarball sha256 `TODO`, `loader.min.js` sha256 `TODO` (BYTES bytes). npm dist-tag `latest` is `@stagepass/loader@2.5.2`.
 
 #### Fixed
 
@@ -792,7 +792,7 @@ Stable release of the 2.0 line (same behaviour as `2.0.0-beta.1`).
 
 ### [2.2.3] - 2026-11-25
 
-Modules-only patch on top of 2.2.2. CLI and loader are not part of this release. Not published yet (no tag, no npm).
+Modules patch on top of 2.2.2. Released together with `@stagepass/loader` 2.5.2 and `@stagepass/cli` 2.7.0 (separate packages, own tags). Published on npm as `@stagepass/modules@2.2.3`. **Fill after `npm stage approve`:** date and time Europe/Berlin, source tag `modules-v2.2.3` (`GITHEAD`), npm package shasum `TODO`, integrity `TODO`, tarball sha256 `TODO`. npm dist-tag `latest` is `@stagepass/modules@2.2.3`.
 
 #### Fixed
 
