@@ -15,6 +15,8 @@ const HOSTNAME_LABEL_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const HOST_WHITESPACE_OR_CONTROL_RE = /[\s\x00-\x1f\x7f]/;
 export const HOST_WHITESPACE_ERROR =
   'Host must not contain whitespace or control characters.';
+export const ORIGIN_PORT_ERROR =
+  'Origin allowlist is hostname-only (https, no port). Omit the port or use the default https port :443.';
 
 /**
  * Reject hosts / site inputs that contain whitespace or control characters.
@@ -54,13 +56,69 @@ export function isBroadWebflowWildcard(entry) {
 }
 
 /**
+ * Strip a pasted URL (or bare host with path/port) down to a hostname candidate.
+ * http(s) only; keeps a leading `*.` wildcard; strips path/query/fragment;
+ * strips default HTTPS port `:443` and rejects any other port.
+ *
+ * @param {string} input Lowercased raw string (no whitespace/controls).
+ * @returns {{ ok: true, host: string } | { ok: false, error: string }}
+ */
+function extractOriginHostname(input) {
+  let raw = input;
+
+  if (/^[a-z][a-z0-9+.-]*:\/\//.test(raw)) {
+    if (raw.startsWith('https://')) {
+      raw = raw.slice('https://'.length);
+    } else if (raw.startsWith('http://')) {
+      // Input convenience only; stored allowlist entries remain https origins.
+      raw = raw.slice('http://'.length);
+    } else {
+      return {
+        ok: false,
+        error: 'Origin must use http:// or https:// (or a bare hostname).',
+      };
+    }
+  }
+
+  if (raw.includes('@')) {
+    return { ok: false, error: 'Origin must not contain credentials.' };
+  }
+
+  // Host only: drop path, query, and fragment (including a trailing slash).
+  const hostPart = raw.split(/[/?#]/, 1)[0];
+  if (!hostPart) {
+    return { ok: false, error: 'Origin entry is empty.' };
+  }
+
+  // Ports: allow stripping the default HTTPS port; reject any other.
+  const lastColon = hostPart.lastIndexOf(':');
+  if (lastColon !== -1) {
+    // IPv6 is out of scope; a colon means an explicit port on a hostname.
+    const maybePort = hostPart.slice(lastColon + 1);
+    if (/^\d+$/.test(maybePort)) {
+      if (maybePort === '443') {
+        return { ok: true, host: hostPart.slice(0, lastColon) };
+      }
+      return { ok: false, error: ORIGIN_PORT_ERROR };
+    }
+    return {
+      ok: false,
+      error: 'Origin must be a hostname (optional leading *.), no path or port.',
+    };
+  }
+
+  return { ok: true, host: hostPart };
+}
+
+/**
  * Validate a single live-domain / origin entry.
- * Accepts: example.com | www.example.com | *.example.com | https://example.com
+ * Accepts: example.com | www.example.com | *.example.com |
+ * https://example.com[/…] | http://example.com[/…] (http is input-only).
  * Also accepts full Webflow staging hosts (my-project.webflow.io) and explicit
  * wildcards (*.webflow.io) when passed by the user.
  *
  * @param {string} input
- * @returns {{ ok: true, value: string } | { ok: false, error: string }}
+ * @returns {{ ok: true, value: string, normalised?: boolean } | { ok: false, error: string }}
  */
 export function validateOriginEntry(input) {
   if (typeof input !== 'string' || input === '') {
@@ -70,20 +128,10 @@ export function validateOriginEntry(input) {
   const ws = rejectWhitespaceOrControls(input, 'Origin');
   if (!ws.ok) return ws;
 
-  let raw = input.toLowerCase();
+  const extracted = extractOriginHostname(input.toLowerCase());
+  if (!extracted.ok) return extracted;
 
-  // Optional https:// only (http reserved for localhost defaults)
-  if (raw.startsWith('http://')) {
-    return { ok: false, error: 'Live origins must use https:// (or a bare hostname).' };
-  }
-  if (raw.startsWith('https://')) {
-    raw = raw.slice('https://'.length);
-  }
-
-  // Reject paths / query / credentials leftovers
-  if (raw.includes('/') || raw.includes('?') || raw.includes('@') || raw.includes(':')) {
-    return { ok: false, error: 'Origin must be a hostname (optional leading *.), no path or port.' };
-  }
+  let raw = extracted.host;
 
   let wildcard = false;
   if (raw.startsWith('*.')) {
@@ -106,25 +154,30 @@ export function validateOriginEntry(input) {
   }
 
   const value = wildcard ? `*.${raw}` : raw;
-  return { ok: true, value };
+  const normalised = value !== input.toLowerCase();
+  return normalised ? { ok: true, value, normalised: true } : { ok: true, value };
 }
 
 /**
  * @param {string[]} entries
- * @returns {{ ok: true, origins: string[] } | { ok: false, error: string }}
+ * @returns {{ ok: true, origins: string[], normalised: string[] } | { ok: false, error: string }}
  */
 export function validateOriginList(entries) {
   const out = [];
+  const normalised = [];
   const seen = new Set();
   for (const entry of entries || []) {
     const result = validateOriginEntry(entry);
     if (!result.ok) return result;
+    if (result.normalised && !normalised.includes(result.value)) {
+      normalised.push(result.value);
+    }
     if (!seen.has(result.value)) {
       seen.add(result.value);
       out.push(result.value);
     }
   }
-  return { ok: true, origins: out };
+  return { ok: true, origins: out, normalised };
 }
 
 /**

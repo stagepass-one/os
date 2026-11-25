@@ -82,13 +82,13 @@ broken.sp {
     ).toBe(false);
   });
 
-  it('recommended CDN snippets use the Stagepass CDN with exact pins', () => {
+  it('recommended CDN snippets use the Stagepass CDN major alias @2', () => {
     expect(RECOMMENDED_CDN_SNIPPETS).toEqual([
-      'https://cdn.stagepass.one/loader@2.5.1/loader.min.js',
-      'https://cdn.stagepass.one/modules@2.2.2/inject.min.js',
-      'https://cdn.stagepass.one/modules@2.2.2/cookies.min.js',
-      'https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js',
-      'https://cdn.stagepass.one/modules@2.2.2/all.min.js',
+      'https://cdn.stagepass.one/loader@2',
+      'https://cdn.stagepass.one/modules@2/inject.min.js',
+      'https://cdn.stagepass.one/modules@2/cookies.min.js',
+      'https://cdn.stagepass.one/modules@2/maintenance.min.js',
+      'https://cdn.stagepass.one/modules@2/all.min.js',
     ]);
     for (const url of RECOMMENDED_CDN_SNIPPETS) {
       expect(url).toMatch(/^https:\/\/cdn\.stagepass\.one\//);

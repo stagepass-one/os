@@ -11,6 +11,14 @@ Packages are versioned independently: `@stagepass/cli`, `@stagepass/loader`, `@s
 
 ## Unreleased
 
+### `@stagepass/cli`
+
+- Origins: pasted `http(s)://` URLs (path, query, fragment, trailing slash) are normalised to a lowercase hostname; `:443` is stripped; other ports, credentials, and non-http(s) schemes are rejected. Prints `Using <host>` when normalised (#168).
+- Footer snippets: a concrete `production` host fills `data-src` / `data-href` (`https://<host>/js/main.js`, `…/css/styles.css`); wildcards fall through to GitHub jsDelivr or `YOUR-PRODUCTION-URL`. `stagepass new` and `stagepass upgrade` pass `production` (#170).
+- `stagepass new` no longer asks for a CDN; default remains Stagepass CDN. Default CLI snippet output no longer prints a jsDelivr alternative line (`--cdn jsdelivr` / `"cdn": "jsdelivr"` still work) (#169).
+- Default Stagepass CDN snippets use `loader@2` / `modules@2` without `data-stagepass-version`. Exact pins stay documented via `SNIPPET_LOADER_VERSION` / `SNIPPET_MODULES_VERSION` (#162).
+- Docs and templates prefer `stagepass build` / `watch` / `dev` over calling npm scripts directly (#139).
+
 ### Repo
 
 - Docs: default Stagepass CDN embeds are the major aliases `https://cdn.stagepass.one/loader@2` and `https://cdn.stagepass.one/modules@2` (no `data-stagepass-version`). Exact pins remain documented. jsDelivr remains the documented alternative. Loader 2.5.2 resolves session chunks from short CDN folder URLs (#161, #163).

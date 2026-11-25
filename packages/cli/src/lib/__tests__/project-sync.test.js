@@ -373,13 +373,16 @@ describe('originsFromStagepassConfig / phpFromStagepassConfig / cdnFromStagepass
         production: 'www.example.com',
       })
     ).toEqual(['a.webflow.io', 'www.example.com']);
-    expect(originsFromStagepassConfig({ origin: 'https://bad.example/path' })).toEqual([]);
+    expect(originsFromStagepassConfig({ origin: 'https://ok.example/path' })).toEqual([
+      'ok.example',
+    ]);
     expect(
       originsFromStagepassConfig({
         origin: 'ok.webflow.io',
-        production: 'https://bad.example/path',
+        production: 'https://www.example.com/path',
       })
-    ).toEqual(['ok.webflow.io']);
+    ).toEqual(['ok.webflow.io', 'www.example.com']);
+    expect(originsFromStagepassConfig({ origin: 'https://evil.example:8443' })).toEqual([]);
     expect(phpFromStagepassConfig({ php: false })).toBe(false);
     expect(phpFromStagepassConfig({ php: true })).toBe(true);
     expect(phpFromStagepassConfig({})).toBeUndefined();

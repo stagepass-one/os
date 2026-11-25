@@ -5,6 +5,7 @@ import {
   originMatchesAllowlist,
   isBroadWebflowWildcard,
   DEFAULT_ORIGIN_ALTERNATIVES,
+  ORIGIN_PORT_ERROR,
 } from '../origins.js';
 
 describe('validateOriginEntry', () => {
@@ -20,7 +21,47 @@ describe('validateOriginEntry', () => {
     expect(validateOriginEntry('https://www.example.com')).toEqual({
       ok: true,
       value: 'www.example.com',
+      normalised: true,
     });
+  });
+
+  it('extracts a hostname from pasted URLs (path, query, fragment, trailing slash)', () => {
+    expect(validateOriginEntry('https://1k5-partner.webflow.io/')).toEqual({
+      ok: true,
+      value: '1k5-partner.webflow.io',
+      normalised: true,
+    });
+    expect(validateOriginEntry('http://example.com/path?x=1#frag')).toEqual({
+      ok: true,
+      value: 'example.com',
+      normalised: true,
+    });
+    expect(validateOriginEntry('https://*.example.com/')).toEqual({
+      ok: true,
+      value: '*.example.com',
+      normalised: true,
+    });
+    expect(validateOriginEntry('example.com/path')).toEqual({
+      ok: true,
+      value: 'example.com',
+      normalised: true,
+    });
+  });
+
+  it('strips :443 and rejects other ports', () => {
+    expect(validateOriginEntry('https://example.com:443/')).toEqual({
+      ok: true,
+      value: 'example.com',
+      normalised: true,
+    });
+    expect(validateOriginEntry('example.com:443')).toEqual({
+      ok: true,
+      value: 'example.com',
+      normalised: true,
+    });
+    const bad = validateOriginEntry('https://example.com:8443');
+    expect(bad.ok).toBe(false);
+    expect(bad.error).toBe(ORIGIN_PORT_ERROR);
   });
 
   it('accepts full Webflow staging hostnames and explicit wildcards', () => {
@@ -31,6 +72,7 @@ describe('validateOriginEntry', () => {
     expect(validateOriginEntry('https://my-project.webflow.io')).toEqual({
       ok: true,
       value: 'my-project.webflow.io',
+      normalised: true,
     });
     expect(validateOriginEntry('*.webflow.io')).toEqual({
       ok: true,
@@ -44,17 +86,22 @@ describe('validateOriginEntry', () => {
 
   it('rejects injection and unsafe values', () => {
     for (const bad of [
-      'http://example.com',
-      'example.com/path',
-      'example.com:443',
+      'ftp://example.com',
+      'user:pass@example.com',
+      'https://user:pass@example.com',
       'foo bar',
-      'foo#bar',
       'foo{bar}',
       '*.*.com',
       '',
     ]) {
       expect(validateOriginEntry(bad).ok).toBe(false);
     }
+    // Fragment is stripped (same as path/query), leaving the hostname.
+    expect(validateOriginEntry('example.com#frag')).toEqual({
+      ok: true,
+      value: 'example.com',
+      normalised: true,
+    });
   });
 
   it.each([

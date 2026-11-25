@@ -532,9 +532,12 @@ export async function upgrade(options = {}, deps = {}) {
   try {
     const readGitRef = deps.readGitRef || readSnippetGitRef;
     const gitRef = await readGitRef(cwd);
+    const production =
+      sp.data && typeof sp.data.production === 'string' ? sp.data.production : '';
     snippets = buildWebflowSnippets({
       version: snippetVersion,
       moduleList: resolved.modules,
+      production,
       gitRemote: gitRef && gitRef.gitRemote,
       gitBranch: gitRef && gitRef.gitBranch,
       projectName: pkg.name,

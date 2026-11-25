@@ -7,7 +7,7 @@ const pins = defaultSnippetPins('stagepass');
 /**
  * Canonical CDN embed snippets recommended by Stagepass docs.
  * Doctor checks these so generated / documented snippets never drift to @latest.
- * Default host is the Stagepass CDN with exact pins.
+ * Default host is the Stagepass CDN with the major alias `@2`.
  */
 export const RECOMMENDED_CDN_SNIPPETS = Object.freeze([
   stagepassPackageUrl('loader', pins.loaderPin, 'loader.min.js'),
@@ -20,10 +20,11 @@ export const RECOMMENDED_CDN_SNIPPETS = Object.freeze([
 /**
  * Unpinned / legacy CDN pins for @stagepass/loader and @stagepass/modules:
  * - `@latest`
- * - bare major `@1` (not `@1.2.0` exact pins)
+ * - bare major `@1` (not `@2` or `@1.2.0` exact pins)
  * - package URL with no `@version` at all
  *
  * Matches the Stagepass CDN, jsDelivr, and existing unpkg paths.
+ * The current major alias `@2` is the recommended default and is not flagged.
  */
 export const UNPINNED_CDN_RE =
   /(?:cdn\.stagepass\.one\/(?:loader|modules)|(?:cdn\.jsdelivr\.net\/npm|unpkg\.com)\/@stagepass\/(?:loader|modules))(?:@latest|@1(?![0-9.])|(?!@))(?=[/"'?\s]|$)/gi;

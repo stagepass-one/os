@@ -85,6 +85,9 @@ export async function link(domain, options = {}, deps = {}) {
       return 1;
     }
     originsFromFlags = check.origins;
+    for (const host of check.normalised || []) {
+      log(`Using ${host}`);
+    }
     for (const entry of check.origins) {
       if (isBroadWebflowWildcard(entry)) {
         log(
@@ -101,6 +104,9 @@ export async function link(domain, options = {}, deps = {}) {
     if (!check.ok) {
       log(chalk.red(`❌ Invalid --remove-origin: ${check.error}`));
       return 1;
+    }
+    for (const host of check.normalised || []) {
+      log(`Using ${host}`);
     }
   }
 
