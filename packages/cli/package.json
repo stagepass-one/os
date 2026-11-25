@@ -35,7 +35,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/arobertherz/stagepass.git",
+    "url": "https://github.com/stagepass-one/os.git",
     "directory": "packages/cli"
   },
   "license": "MIT",

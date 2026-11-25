@@ -179,5 +179,5 @@ Module members are optional (`sp.cookies?`), because a page may not load the fil
 
 ## Repository
 
-- Full docs and examples: [stagepass repository](https://github.com/arobertherz/stagepass)
+- Full docs and examples: [stagepass repository](https://github.com/stagepass-one/os)
 - Migration: [MIGRATION.md](../../MIGRATION.md)
