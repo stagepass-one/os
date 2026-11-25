@@ -49,21 +49,17 @@
     return sp;
   }
 
+  /** Loader present via public API (never read sp.vars). */
+  function hasLoaderApi(sp: any): boolean {
+    return !!(sp && (typeof sp.env === 'function' || typeof sp.use === 'function'));
+  }
+
   function warnMissingLoader(): void {
     try {
       console.warn(
         '[Stagepass] Core loader should be loaded before the inject module.'
       );
     } catch (_) {}
-  }
-
-  // Get Stagepass vars (must be available from core loader)
-  function getVars() {
-    const sp = getStagepassObject();
-    if (!sp || !sp.vars) {
-      throw new Error('Stagepass core loader must be loaded before modules');
-    }
-    return sp.vars;
   }
 
   /** Attribute names that must not be overridden via `attributes` (allowlist / SRI safety). */
@@ -76,12 +72,12 @@
     'nonce',
   ]);
 
-  // Logging helper
+  // Logging: prefer loader helpers (no-op without an active session)
   function log(message: string) {
     try {
-      const vars = getVars();
-      if (vars.env === 'local' || vars.env === 'staging') {
-        console.log(`[Stagepass] ${message}`);
+      const sp = getStagepassObject();
+      if (sp && typeof sp.log === 'function') {
+        sp.log(message);
       }
     } catch (_) {}
   }
@@ -96,6 +92,15 @@
     } catch (_) {}
     try {
       console.warn(`[Stagepass] ${message}`);
+    } catch (_) {}
+  }
+
+  function error(...args: unknown[]) {
+    try {
+      const sp = getStagepassObject();
+      if (sp && typeof sp.error === 'function') {
+        sp.error(...args);
+      }
     } catch (_) {}
   }
 
@@ -152,21 +157,23 @@
   }
 
   function resolveSource(options: InjectOptions): string {
-    const vars = getVars();
     const { src, stagepass, localPath, path, version } = options;
 
     if (!src || typeof src !== 'string') {
       throw new Error('Invalid src: must be a non-empty string');
     }
 
-    if (stagepass !== false && vars.isLocal) {
+    // Local swap: resolveLocalUrl is non-empty only with an active swap session.
+    // Do not gate on sp.vars.isLocal (triggers the public-API warning).
+    if (stagepass !== false) {
       const filename = localPath || path || extractFilename(src);
-      if (!filename || typeof filename !== 'string') return src;
-      const cleanPath = filename.startsWith('/') ? filename.substring(1) : filename;
-      const sp = getStagepassObject();
-      if (sp && typeof sp.resolveLocalUrl === 'function') {
-        const localUrl = sp.resolveLocalUrl(cleanPath);
-        if (localUrl) return localUrl;
+      if (filename && typeof filename === 'string') {
+        const cleanPath = filename.startsWith('/') ? filename.substring(1) : filename;
+        const sp = getStagepassObject();
+        if (sp && typeof sp.resolveLocalUrl === 'function') {
+          const localUrl = sp.resolveLocalUrl(cleanPath);
+          if (localUrl) return localUrl;
+        }
       }
     }
 
@@ -249,12 +256,9 @@
   function injectSingle(options: InjectOptions): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!options.src) {
-        const vars = getVars();
-        const error = new Error('InjectOptions must have a "src" property');
-        if (vars.env !== 'production') {
-          console.error('[Stagepass]', error);
-        }
-        reject(error);
+        const err = new Error('InjectOptions must have a "src" property');
+        error(err);
+        reject(err);
         return;
       }
 
@@ -266,7 +270,6 @@
         return;
       }
 
-      const vars = getVars();
       const detectedType = detectType(options.src, options.type);
       const resolvedSrc = resolveSource(options);
 
@@ -312,11 +315,9 @@
           resolve();
         };
         script.onerror = () => {
-          const error = new Error(`Failed to load script: ${resolvedSrc}`);
-          if (vars.env !== 'production') {
-            console.error('[Stagepass]', error);
-          }
-          reject(error);
+          const err = new Error(`Failed to load script: ${resolvedSrc}`);
+          error(err);
+          reject(err);
         };
       } else {
         const link = element as HTMLLinkElement;
@@ -349,11 +350,9 @@
           clearInterval(checkLoad);
           const sheet = link.sheet || (link as any).styleSheet;
           if (!sheet) {
-            const error = new Error(`Failed to load stylesheet: ${resolvedSrc}`);
-            if (vars.env !== 'production') {
-              console.error('[Stagepass]', error);
-            }
-            reject(error);
+            const err = new Error(`Failed to load stylesheet: ${resolvedSrc}`);
+            error(err);
+            reject(err);
           }
         }, 5000);
       }
@@ -448,13 +447,8 @@
     for (const item of items) {
       try {
         await injectSingle(item);
-      } catch (error) {
-        try {
-          const vars = getVars();
-          if (vars.env !== 'production') {
-            console.error('[Stagepass] Injection error:', error);
-          }
-        } catch (_) {}
+      } catch (err) {
+        error('Injection error:', err);
       }
     }
   }
@@ -463,14 +457,14 @@
     api.inject = inject;
   }
 
-  // 2.0.0 behaviour: always attach inject (even without loader vars)
+  // 2.0.0 behaviour: always attach inject (even without loader)
   const sp = getStagepassObject() || {};
-  if (!sp.vars) {
+  if (!hasLoaderApi(sp)) {
     warnMissingLoader();
   }
 
   const MODULE_VERSION = '2.0.0';
-  if (sp.vars && typeof sp.use === 'function') {
+  if (typeof sp.use === 'function') {
     sp.use('inject', MODULE_VERSION, register);
   } else {
     register(sp);

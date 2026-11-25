@@ -27,20 +27,23 @@ async function advanceScriptStack(work: Promise<unknown>, steps = 10) {
 describe('Inject options (integrity, nonce, allowlist)', () => {
   beforeAll(async () => {
     const stagepassObj: any = {
-      vars: {
-        isLocal: false,
-        env: 'production',
-        domain: 'example.com',
-        timestamp: 0,
-        version: '2.0.0',
-      },
+      env: () => 'production',
+      is: (n: string) => n === 'production',
+      log: vi.fn(),
       warn: vi.fn(),
+      error: vi.fn(),
       resolveLocalUrl: () => '',
       use: (_name: string, _version: string, factory: (api: any) => void) => {
         factory(stagepassObj);
         return true;
       },
     };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
     (window as any).stagepass = stagepassObj;
     (globalThis as any).stagepass = stagepassObj;
     await import('../index.ts');
@@ -246,20 +249,24 @@ describe('Inject INV-6 / F-2 localhost without session', () => {
   beforeAll(async () => {
     vi.resetModules();
     const stagepassObj: any = {
-      vars: {
-        isLocal: true,
-        env: 'local',
-        domain: 'localhost',
-        timestamp: 999001,
-        version: '2.2.1',
-      },
+      // Host is localhost but no swap session → resolveLocalUrl empty; env() is production
+      env: () => 'production',
+      is: (n: string) => n === 'production',
+      log: vi.fn(),
       warn: vi.fn(),
+      error: vi.fn(),
       resolveLocalUrl: () => '',
       use: (_name: string, _version: string, factory: (api: any) => void) => {
         factory(stagepassObj);
         return true;
       },
     };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
     (window as any).stagepass = stagepassObj;
     (globalThis as any).stagepass = stagepassObj;
     await import('../index.ts');

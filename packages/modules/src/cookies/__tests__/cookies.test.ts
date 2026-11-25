@@ -2,20 +2,23 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Cookies Module', () => {
   beforeAll(async () => {
-    const stagepassObj = {
-      vars: {
-        isLocal: true,
-        env: 'local',
-        domain: 'test.sp',
-        timestamp: 1234567890,
-        version: '2.0.0',
-      },
+    const stagepassObj: any = {
+      env: () => 'local',
+      is: (n: string) => n === 'local',
+      log: vi.fn(),
       warn: vi.fn(),
-      use: (name: string, version: string, factory: (api: any) => void) => {
+      error: vi.fn(),
+      use: (_name: string, _version: string, factory: (api: any) => void) => {
         factory(stagepassObj);
         return true;
       },
     };
+    Object.defineProperty(stagepassObj, 'vars', {
+      configurable: true,
+      get() {
+        throw new Error('sp.vars must not be read by modules');
+      },
+    });
     (window as any).stagepass = stagepassObj;
     (globalThis as any).stagepass = stagepassObj;
     await import('../index.ts');
