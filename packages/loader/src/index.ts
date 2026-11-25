@@ -361,7 +361,10 @@ declare const __STAGEPASS_VERSION__: string;
       const opt = attr('flag-base') ?? W.stagepassFlagBase;
       let base = flagBase(opt, false);
       if (opt != null && !base) spWarn('Ignored flag base (http(s) or relative only): ' + cut(String(opt), 99));
-      base = base || flagBase((loaderScript && loaderScript.src) || '', true);
+      // Short CDN URLs (/loader@2) are folders; only *.js / loader*.js are files (os#161).
+      const src = (loaderScript && loaderScript.src) || '';
+      const file = fileOf(src);
+      base = base || flagBase(src, LOADER_RE.test(file) || /\.js$/i.test(file));
       if (!base) {
         base = `https://cdn.jsdelivr.net/npm/@stagepass/loader@${PKG_VERSION}/dist/`;
         if (debug) spWarn('Loader URL unknown, flag loads from ' + base + '. Set data-stagepass-flag-base');

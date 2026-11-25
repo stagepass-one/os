@@ -150,15 +150,15 @@ We use a monorepo workspace structure to manage these distinct packages:
 ### Modules: Loading Methods
 -   **Separate script tags only:** Load modules as separate scripts after `loader.min.js` in `<head>`:
     ```html
-    <script src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"></script>
-    <script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
-    <script src="https://cdn.stagepass.one/modules@2.2.2/cookies.min.js"></script>
-    <script src="https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js"></script>
+    <script src="https://cdn.stagepass.one/loader@2"></script>
+    <script src="https://cdn.stagepass.one/modules@2/inject.min.js"></script>
+    <script src="https://cdn.stagepass.one/modules@2/cookies.min.js"></script>
+    <script src="https://cdn.stagepass.one/modules@2/maintenance.min.js"></script>
     ```
 -   **Important:** Core loader should be loaded first. Without it, `inject`/`cookies` still attach APIs and warn; `maintenance` skips registration.
 -   **Module Registration:** Modules register via `stagepass.use(...)` when available (e.g. `sp.inject`, `sp.cookies` / `sp.cookie`, `sp.maintenance`)
 -   **Global Variable:** `sp` is preferred; `stagepass` and `window.stagepass` remain available; optional `data-stagepass-alias`
--   **Version pinning:** Prefer an exact pin on the Stagepass CDN in production, for example `https://cdn.stagepass.one/loader@2.5.1/loader.min.js`. Use the full file path. This host has no `/dist/` segment. `@2` on this host is a short-lived redirect, not an immutable file. jsDelivr is the documented alternative (`https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`); that host may cache `@2` briefly and can be purged at `https://purge.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. See docs "Version pinning".
+-   **Version pinning:** Default Stagepass CDN embed is the major alias (`https://cdn.stagepass.one/loader@2`, `https://cdn.stagepass.one/modules@2/...`). Exact pin when needed (e.g. `https://cdn.stagepass.one/loader@2.5.2/loader.min.js`). `@2` on this host is a short-lived redirect, not an immutable file. jsDelivr is the documented alternative (`https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`); that host may cache `@2` briefly and can be purged at `https://purge.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. See docs "Version pinning".
 
 ### CLI: Commands
 -   `stagepass setup`: Install dependencies and configure .sp domain
@@ -191,5 +191,5 @@ We use a monorepo workspace structure to manage these distinct packages:
 4.  **Code Language:** All code and comments must be in English (ignore `/dist` folder for loader).
 5.  **Specific Files:**
     -   Global Config: `~/.stagepass/`
-    -   Loader CDN 2.x: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js` (jsDelivr alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`)
+    -   Loader CDN 2.x: `https://cdn.stagepass.one/loader@2` (exact pin e.g. `https://cdn.stagepass.one/loader@2.5.2/loader.min.js`; jsDelivr alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`)
     -   Loader CDN 1.x (legacy pins): `https://cdn.stagepass.one/loader@1.2.0/loader.min.js`

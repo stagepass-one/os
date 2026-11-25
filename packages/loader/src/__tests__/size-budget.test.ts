@@ -21,10 +21,11 @@ import { fileURLToPath } from 'url';
  * 2.5.1 lazy storage probe: 15135 / 6690 / 5971. Raw +70 and gzip +26 (getters
  * plus a one-shot memo) do not fit the 2.5.0 ceilings (15070 / 6685). Brotli
  * +13 still fits 5974. Raw and gzip ceilings are the new measured sizes.
+ * 2.5.2 short-CDN flagBase: 15175 / 6730 / 5999. Ceilings are the measured sizes.
  * flag.min.js / flag-card.min.js / live.min.js are unchanged.
  */
 const BUDGET = {
-  'loader.min.js': { min: 15135, gzip: 6690, br: 5974 },
+  'loader.min.js': { min: 15175, gzip: 6730, br: 5999 },
   // Dev-only chunks, fetched only while a Stagepass session is active
   'flag.min.js': { min: 7468, gzip: 3280, br: 2866 },
   // Fetched by the flag on the first expand

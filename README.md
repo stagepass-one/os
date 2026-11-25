@@ -27,13 +27,10 @@ stagepass build
 stagepass dev
 ```
 
-In Webflow head code (prefer an exact pin on the Stagepass CDN in production; `data-stagepass-version` is optional cache-bust metadata):
+In Webflow head code (default Stagepass CDN major alias; exact pin optional):
 
 ```html
-<script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
-  data-stagepass-version="2.5.1"
-></script>
+<script src="https://cdn.stagepass.one/loader@2"></script>
 <script
   data-src="https://cdn.example.com/js/app.min.js"
   data-stagepass
@@ -41,7 +38,7 @@ In Webflow head code (prefer an exact pin on the Stagepass CDN in production; `d
 ></script>
 ```
 
-jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Use the full file path on each host. The Stagepass CDN has no `/dist/` segment.
+jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.2/loader.min.js`.
 
 Open `https://your-site/?stagepass=demo.sp`. Details: [docs/getting-started.md](docs/getting-started.md).
 

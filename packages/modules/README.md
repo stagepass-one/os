@@ -16,17 +16,14 @@ Without the loader, `inject` and `cookies` still attach their APIs and warn; `ma
 
 ## CDN Usage
 
-Prefer an exact pin on the Stagepass CDN in production. Stagepass follows strict semver: no breaking changes within v2; breaking changes only in a new major (v3). Use the full file path (this host has no `/dist/` segment). See [Version pinning](https://github.com/stagepass-one/os/blob/master/docs/loader.md#version-pinning) in the docs.
+Default embed is the Stagepass CDN major alias. Stagepass follows strict semver: no breaking changes within v2; breaking changes only in a new major (v3). Exact pin when a specific build must load. See [Version pinning](https://github.com/stagepass-one/os/blob/master/docs/loader.md#version-pinning) in the docs.
 
 ```html
+<script src="https://cdn.stagepass.one/loader@2"></script>
+<script src="https://cdn.stagepass.one/modules@2/inject.min.js"></script>
+<script src="https://cdn.stagepass.one/modules@2/cookies.min.js"></script>
 <script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
-  data-stagepass-version="2.5.1"
-></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/cookies.min.js"></script>
-<script
-  src="https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js"
+  src="https://cdn.stagepass.one/modules@2/maintenance.min.js"
   data-stagepass-maintenance="true"
   data-stagepass-maintenance-title="We will be back soon"
   data-stagepass-maintenance-text="Please check again shortly."
@@ -36,8 +33,8 @@ Prefer an exact pin on the Stagepass CDN in production. Stagepass follows strict
 Or load all modules:
 
 ```html
-<script src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/all.min.js"></script>
+<script src="https://cdn.stagepass.one/loader@2"></script>
+<script src="https://cdn.stagepass.one/modules@2/all.min.js"></script>
 ```
 
 jsDelivr is the documented alternative, with full `/dist/` paths such as `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js` and `https://cdn.jsdelivr.net/npm/@stagepass/modules@2/dist/inject.min.js`.

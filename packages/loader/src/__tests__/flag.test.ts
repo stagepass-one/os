@@ -138,6 +138,42 @@ describe('dev flag v2', () => {
       expect(flagSrc()).toBe('https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/flag.min.js');
     });
 
+    it('Stagepass CDN short /loader@2 is a directory, not the site root (os#161)', async () => {
+      startSession('my-project.sp');
+      await bootAs(tag('https://cdn.stagepass.one/loader@2'));
+      expect(flagSrc()).toBe('https://cdn.stagepass.one/loader@2/flag.min.js');
+    });
+
+    it('Stagepass CDN short /loader@2/ with a trailing slash stays in that folder', async () => {
+      startSession('my-project.sp');
+      await bootAs(tag('https://cdn.stagepass.one/loader@2/'));
+      expect(flagSrc()).toBe('https://cdn.stagepass.one/loader@2/flag.min.js');
+    });
+
+    it('Stagepass CDN exact short /loader@2.5.1 (dots in the version) is still a directory', async () => {
+      startSession('my-project.sp');
+      await bootAs(tag('https://cdn.stagepass.one/loader@2.5.1'));
+      expect(flagSrc()).toBe('https://cdn.stagepass.one/loader@2.5.1/flag.min.js');
+    });
+
+    it('Stagepass CDN full file path /loader@2.5.1/loader.min.js uses that folder', async () => {
+      startSession('my-project.sp');
+      await bootAs(tag('https://cdn.stagepass.one/loader@2.5.1/loader.min.js'));
+      expect(flagSrc()).toBe('https://cdn.stagepass.one/loader@2.5.1/flag.min.js');
+    });
+
+    it('unpkg @2 file path stays next to the loader', async () => {
+      startSession('my-project.sp');
+      await bootAs(tag('https://unpkg.com/@stagepass/loader@2/dist/loader.min.js'));
+      expect(flagSrc()).toBe('https://unpkg.com/@stagepass/loader@2/dist/flag.min.js');
+    });
+
+    it('jsDelivr file path with dots in the version stays next to the loader', async () => {
+      startSession('my-project.sp');
+      await bootAs(tag('https://cdn.jsdelivr.net/npm/@stagepass/loader@2.5.1/dist/loader.min.js'));
+      expect(flagSrc()).toBe('https://cdn.jsdelivr.net/npm/@stagepass/loader@2.5.1/dist/flag.min.js');
+    });
+
     it('self-hosted under another file name: same folder, no jsDelivr', async () => {
       startSession('my-project.sp');
       await bootAs(tag('https://www.example.com/js/stagepass-2.3.1.js?v=3#x'));

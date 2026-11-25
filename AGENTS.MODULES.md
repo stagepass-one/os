@@ -8,17 +8,14 @@ This profile is for projects that use Stagepass Loader and Stagepass Modules (In
 Loader must be loaded before modules as separate `<script>` tags (the loader does not auto-load modules via query parameters). Without the loader, `inject`/`cookies` still attach APIs and warn; `maintenance` skips registration.
 
 ## CDN (version pinning)
-Prefer an exact pin on the Stagepass CDN in production. Stagepass follows strict semver: no breaking changes within v2; breaking changes only in a new major (v3). `@2` on this host is a short-lived redirect, not an immutable file. Legacy `@1` sites are unaffected.
+Default embed is the Stagepass CDN major alias. Stagepass follows strict semver: no breaking changes within v2; breaking changes only in a new major (v3). `@2` on this host is a short-lived redirect, not an immutable file. Legacy `@1` sites are unaffected. Exact pin when a specific build must load.
 
 ```html
+<script src="https://cdn.stagepass.one/loader@2"></script>
+<script src="https://cdn.stagepass.one/modules@2/inject.min.js"></script>
+<script src="https://cdn.stagepass.one/modules@2/cookies.min.js"></script>
 <script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
-  data-stagepass-version="2.5.1"
-></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/cookies.min.js"></script>
-<script
-  src="https://cdn.stagepass.one/modules@2.2.2/maintenance.min.js"
+  src="https://cdn.stagepass.one/modules@2/maintenance.min.js"
   data-stagepass-maintenance="true"
   data-stagepass-maintenance-title="We will be back soon"
   data-stagepass-maintenance-text="Please check again shortly."

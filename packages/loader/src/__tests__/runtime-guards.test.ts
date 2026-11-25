@@ -110,6 +110,33 @@ describe('runtime guards the mutation probe missed', () => {
     expect(document.querySelector('script[src*="my-project.sp"]')).toBeNull();
   });
 
+  it('without a swap session, data-stagepass-path stays on the production URL', async () => {
+    document.body.innerHTML =
+      '<script data-stagepass data-stagepass-path="js/app.js" data-src="https://cdn.example.com/bundle.min.js"></script>';
+    await bootAs(loaderTag());
+    await new Promise((r) => setTimeout(r, 0));
+    const el = document.querySelector('script[src*="cdn.example.com/bundle.min.js"]') as HTMLScriptElement;
+    expect(el).toBeTruthy();
+    expect(el.src).not.toContain('js/app.js');
+    expect(document.querySelector('script[src*=".sp/"]')).toBeNull();
+    expect(sp().resolveLocalUrl('js/app.js')).toBe('');
+    expect(sp().env()).toBe('production');
+  });
+
+  it('debug sessions keep production assets (no local swap)', async () => {
+    startSession('debug');
+    document.body.innerHTML =
+      '<script data-stagepass data-stagepass-path="js/app.js" data-src="https://cdn.example.com/bundle.min.js"></script>';
+    await bootAs(loaderTag());
+    await new Promise((r) => setTimeout(r, 0));
+    const el = document.querySelector('script[src*="cdn.example.com/bundle.min.js"]') as HTMLScriptElement;
+    expect(el).toBeTruthy();
+    expect(el.src).not.toMatch(/\.sp\//);
+    expect(sp().resolveLocalUrl('js/app.js')).toBe('');
+    expect(sp().env()).toBe('production');
+    expect(sp().is('local')).toBe(false);
+  });
+
   it('logs a restored localStorage session once', async () => {
     startSession('my-project.sp');
     const lines: string[] = [];
