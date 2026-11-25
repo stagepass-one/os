@@ -140,9 +140,10 @@ describe('upgrade command', () => {
     expect(ts.include).toEqual(['src']);
     const out = logs.join('\n');
     expect(out).toContain('npm install');
-    expect(out).toContain('cdn.stagepass.one/modules@2.2.2/cookies.min.js');
+    expect(out).toContain('cdn.stagepass.one/modules@2/cookies.min.js');
     expect(out).not.toContain('inject.min.js');
     expect(out).toContain('https://YOUR-PRODUCTION-URL/js/main.js');
+    expect(out).not.toContain('jsDelivr alternative (major pin @2)');
   });
 
   it('prints a jsDelivr footer when origin is a GitHub remote', async () => {
@@ -794,7 +795,12 @@ describe('upgrade: snippet version pin (AC-7 / AC-14)', () => {
       published('2.3.4', ['2.1.0', '2.3.4'])
     );
     expect(code).toBe(0);
-    expect(snippetVersions(out)).toEqual(['2.1.0', '2.1.0']);
+    // Default Stagepass CDN snippets use @2 without data-stagepass-version.
+    expect(snippetVersions(out)).toEqual([]);
+    expect(out).toContain('cdn.stagepass.one/loader@2');
+    expect(guideLoaderPin(await fsx.readFile(path.join(dir, 'AGENTS.stagepass.md'), 'utf8'))).toBe(
+      '2.1.0'
+    );
   });
 
   it.each([
@@ -825,16 +831,16 @@ describe('upgrade: snippet version pin (AC-7 / AC-14)', () => {
     await writePkg({ '@stagepass/loader': '^2.0.0', '@stagepass/modules': '^2.0.0' });
     const { code, out } = await run({ siteModules: 'cookies' }, published('2.3.4', ['2.0.0', '2.3.4']));
     expect(code).toBe(0);
-    expect(snippetVersions(out)).toEqual(['2.3.4', '2.3.4']);
+    expect(snippetVersions(out)).toEqual([]);
+    expect(out).toContain('cdn.stagepass.one/loader@2');
+    expect(out).not.toContain('jsDelivr alternative (major pin @2)');
     const guide = await fsx.readFile(path.join(dir, 'AGENTS.stagepass.md'), 'utf8');
     expect(guideLoaderPin(guide)).toBe('2.3.4');
+    expect(guide).toContain('cdn.stagepass.one/loader@2');
     expect(guide).not.toContain('cdn.stagepass.one/loader@2.5.1/');
-    expect(out).toContain(
-      'jsDelivr alternative (major pin @2): <script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="2.3.4"></script>'
-    );
   });
 
-  it('pins AGENTS.stagepass.md to the same Stagepass CDN loader version as the printed snippets', async () => {
+  it('pins AGENTS.stagepass.md exact-pin example to the resolved loader version', async () => {
     await writePkg({ '@stagepass/loader': '^2.0.0', '@stagepass/modules': '^2.0.0' });
     await fsx.writeJson(
       path.join(dir, 'stagepass.json'),
@@ -848,15 +854,13 @@ describe('upgrade: snippet version pin (AC-7 / AC-14)', () => {
     );
     expect(code).toBe(0);
     const guide = await fsx.readFile(path.join(dir, 'AGENTS.stagepass.md'), 'utf8');
-    const printed = snippetVersions(out);
-    expect(printed).toEqual([version, version]);
-    expect(guideLoaderPin(guide)).toBe(printed[0]);
+    expect(snippetVersions(out)).toEqual([]);
+    expect(out).toContain('cdn.stagepass.one/loader@2');
+    expect(out).not.toContain('jsDelivr alternative (major pin @2)');
+    expect(guideLoaderPin(guide)).toBe(version);
     expect(guide).toContain(`cdn.stagepass.one/loader@${version}/loader.min.js`);
+    expect(guide).toContain('cdn.stagepass.one/loader@2');
     expect(guide).not.toContain('This project uses jsDelivr');
-    expect(out).toContain(`cdn.stagepass.one/loader@${version}/loader.min.js`);
-    expect(out).toContain(
-      `jsDelivr alternative (major pin @2): <script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="${version}"></script>`
-    );
     expect((await fsx.readJson(path.join(dir, 'stagepass.json'))).cdn).toBe('stagepass');
   });
 

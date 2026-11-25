@@ -21,6 +21,18 @@ describe('resolveBoolFlag', () => {
 });
 
 describe('resolveNewOptions', () => {
+  it('requires a project name when non-interactive and no [name]', async () => {
+    const resolved = await resolveNewOptions(undefined, { yes: true }, {
+      isTTY: false,
+      argv: ['--yes'],
+      exec: async () => ({ stdout: '' }),
+    });
+    expect(resolved.ok).toBe(false);
+    expect(resolved.error).toBe(
+      'Project name is required (pass [name] or use a TTY).'
+    );
+  });
+
   it('applies --yes defaults without TTY', async () => {
     const resolved = await resolveNewOptions(
       'my-app',
@@ -308,12 +320,14 @@ describe('createNew', () => {
     expect(pkg.devDependencies.esbuild).toBeTruthy();
 
     const readme = await fs.readFile(path.join(target, 'README.md'), 'utf8');
-    // F-1: URL pin and data-stagepass-version share the registry-resolved loader (2.2.0),
-    // not the bundled constant 2.5.0 and not the CLI version 2.0.0 (AC-14).
-    expect(readme).toContain('cdn.stagepass.one/loader@2.2.0/loader.min.js');
-    expect(readme).toContain('data-stagepass-version="2.2.0"');
+    // Default Stagepass CDN snippets use the major alias @2 (no data-stagepass-version on the loader tag).
+    // Documented exact-pin examples still mention the resolved loader version (2.2.0).
+    expect(readme).toContain('cdn.stagepass.one/loader@2');
+    expect(readme).toMatch(/src="https:\/\/cdn\.stagepass\.one\/loader@2"/);
+    expect(readme).not.toMatch(
+      /cdn\.stagepass\.one\/loader@2"[^>]*data-stagepass-version/
+    );
     expect(readme).not.toContain('cdn.stagepass.one/loader@2.5.1/loader.min.js');
-    expect(readme).not.toContain('data-stagepass-version="2.0.0"');
     expect(readme).not.toContain('unpkg.com');
 
     const agents = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
@@ -322,8 +336,9 @@ describe('createNew', () => {
     expect(agents).not.toContain('sp.cookies.bake');
     expect(agents).not.toContain('## Stagepass feature set');
     const guide = await fs.readFile(path.join(target, 'AGENTS.stagepass.md'), 'utf8');
+    expect(guide).toContain('cdn.stagepass.one/loader@2');
     expect(guide).toContain('cdn.stagepass.one/loader@2.2.0/loader.min.js');
-    expect(guide).not.toContain('cdn.stagepass.one/loader@2.5.1/loader.min.js');
+    expect(guide).not.toContain('cdn.stagepass.one/loader@2.5.1/');
     expect(guide).toContain('cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js');
     expect(guide).not.toMatch(/unpkg serves the same paths/i);
     expect(guide).not.toContain('unpkg.com');
@@ -332,7 +347,7 @@ describe('createNew', () => {
     expect(guide).toContain('`sp.inject`: not available');
     expect(guide).toMatch(/Never call `sp\.<module>`/);
     expect(guide).not.toContain('\n## PHP\n');
-    expect(readme).toContain('cdn.stagepass.one/modules@2.2.2/cookies.min.js');
+    expect(readme).toContain('cdn.stagepass.one/modules@2/cookies.min.js');
     expect(readme).not.toContain('inject.min.js');
 
     expect(exec).toHaveBeenCalledWith('git', ['init'], expect.objectContaining({ cwd: target }));
@@ -734,7 +749,7 @@ describe('createNew robustness', () => {
     }
   });
 
-  it('defaults snippets to SNIPPET_LOADER_VERSION', async () => {
+  it('defaults snippets to the Stagepass CDN major alias @2', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-ver-'));
     const target = path.join(tmp, 'ver');
     try {
@@ -753,12 +768,45 @@ describe('createNew robustness', () => {
         }
       );
       expect(code).toBe(0);
-      const { SNIPPET_LOADER_VERSION } = await import('../../lib/cdn-base.js');
       const readme = await fs.readFile(path.join(target, 'README.md'), 'utf8');
-      expect(readme).toContain(`data-stagepass-version="${SNIPPET_LOADER_VERSION}"`);
-      expect(readme).toContain(`@${SNIPPET_LOADER_VERSION}`);
+      expect(readme).toContain('cdn.stagepass.one/loader@2');
+      expect(readme).toMatch(/src="https:\/\/cdn\.stagepass\.one\/loader@2"/);
+      expect(readme).not.toMatch(
+        /cdn\.stagepass\.one\/loader@2"[^>]*data-stagepass-version/
+      );
+      expect(readme).not.toContain('/modules@');
     } finally {
       await fs.remove(tmp);
+    }
+  });
+
+  it('resolves a relative --dir against deps.cwd, not process.cwd()', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'sp-cwd-'));
+    const rel = `rel-${Date.now().toString(36)}`;
+    const expected = path.join(cwd, rel);
+    const leaked = path.join(process.cwd(), rel);
+    try {
+      expect(path.resolve(cwd)).not.toBe(path.resolve(process.cwd()));
+      const code = await createNew(
+        'cwd-app',
+        { yes: true, dir: rel, git: false, modules: false },
+        {
+          isTTY: false,
+          argv: ['--yes', '--no-git', '--no-modules'],
+          templatesRoot: defaultTemplatesRoot(),
+          cwd,
+          log: () => {},
+          error: () => {},
+          exec: vi.fn(),
+          spawn: vi.fn(),
+        }
+      );
+      expect(code).toBe(0);
+      expect(await fs.pathExists(path.join(expected, 'package.json'))).toBe(true);
+      expect(await fs.pathExists(path.join(leaked, 'package.json'))).toBe(false);
+    } finally {
+      await fs.remove(cwd);
+      await fs.remove(leaked).catch(() => {});
     }
   });
 });
@@ -1006,8 +1054,9 @@ describe('new: declared modules', () => {
   });
 
   it('wizard: asks for staging/production, confirms detected modules', async () => {
-    // name, dir, author, lang, styles, staging, production, use detected?, cdn, php, git, install
-    const answers = ['shop', 'shop', 'Ada', 'ts', 'scss', 'shop.webflow.io', '', 'y', 'stagepass', 'n', 'n', 'y'];
+    // name, dir, author, lang, styles, staging, production, use detected?, php, git, install
+    // (no CDN prompt; default stagepass)
+    const answers = ['shop', 'shop', 'Ada', 'ts', 'scss', 'shop.webflow.io', '', 'y', 'n', 'n', 'y'];
     const rl = { question: vi.fn(async () => answers.shift() ?? ''), close: vi.fn() };
     const r = await resolveNewOptions(undefined, {}, {
       isTTY: true,
@@ -1027,11 +1076,14 @@ describe('new: declared modules', () => {
       productionSkipped: true,
       cdn: 'stagepass',
     });
+    expect(rl.question.mock.calls.some((c) => /CDN for Webflow/i.test(String(c[0])))).toBe(
+      false
+    );
   });
 
   it('wizard: unreachable site falls back to asking for the list', async () => {
-    // name, dir, author, lang, styles, staging, production, modules, cdn, php, git, install
-    const answers = ['shop', 'shop', 'Ada', 'js', 'css', 'shop.webflow.io', '', 'cookies', 'stagepass', 'n', 'n', 'n'];
+    // name, dir, author, lang, styles, staging, production, modules, php, git, install
+    const answers = ['shop', 'shop', 'Ada', 'js', 'css', 'shop.webflow.io', '', 'cookies', 'n', 'n', 'n'];
     const rl = { question: vi.fn(async () => answers.shift() ?? ''), close: vi.fn() };
     const detectSite = vi.fn(async () => ({ ok: false, error: 'Site did not answer within 5 s.' }));
     const r = await resolveNewOptions(undefined, {}, {
@@ -1042,17 +1094,48 @@ describe('new: declared modules', () => {
       createReadline: () => rl,
       log: () => {},
     });
+    expect(r.ok).toBe(true);
     expect(r.config.siteModules).toEqual(['cookies']);
+    expect(r.config.lang).toBe('js');
+    expect(r.config.styles).toBe('css');
   });
 
-  it('wizard: invalid CDN answers fail closed instead of looping', async () => {
-    let calls = 0;
+  it('wizard: Styles css is kept (not coerced to scss)', async () => {
     const rl = {
-      question: vi.fn(async () => {
-        calls += 1;
-        if (calls > 20) throw new Error('CDN prompt looped');
-        return 'nope';
+      question: vi.fn(async (q) => {
+        if (/Styles \(scss\|css\)/i.test(String(q))) return 'css';
+        return '';
       }),
+      close: vi.fn(),
+    };
+    const r = await resolveNewOptions(
+      'shop',
+      {
+        dir: 'shop',
+        author: 'Ada',
+        lang: 'ts',
+        staging: 'shop.webflow.io',
+        production: 'www.example.com',
+        siteModules: 'none',
+        git: false,
+        install: false,
+        php: false,
+      },
+      {
+        isTTY: true,
+        argv: ['--no-git', '--no-install', '--no-php'],
+        exec: async () => ({ stdout: '' }),
+        createReadline: () => rl,
+        log: () => {},
+      }
+    );
+    expect(r.ok).toBe(true);
+    expect(r.config.styles).toBe('css');
+  });
+
+  it('wizard: defaults to Stagepass CDN without asking', async () => {
+    const rl = {
+      question: vi.fn(async () => ''),
       close: vi.fn(),
     };
     const r = await resolveNewOptions(
@@ -1077,10 +1160,11 @@ describe('new: declared modules', () => {
         log: () => {},
       }
     );
-    expect(r.ok).toBe(false);
-    expect(r.error).toBe('Invalid --cdn: use stagepass (default) or jsdelivr.');
-    expect(calls).toBe(5);
-    expect(rl.close).toHaveBeenCalled();
+    expect(r.ok).toBe(true);
+    expect(r.config.cdn).toBe('stagepass');
+    expect(rl.question.mock.calls.some((c) => /CDN for Webflow/i.test(String(c[0])))).toBe(
+      false
+    );
   });
 
   it('wizard: Language js is kept and any other answer becomes ts', async () => {
@@ -1278,25 +1362,36 @@ describe('new: origins, php, preflight', () => {
     expect(r.error).toMatch(/disagree/i);
   });
 
-  it('rejects invalid staging / production hosts', async () => {
-    const badStaging = await resolveNewOptions(
+  it('normalises pasted staging / production URLs and rejects bad ports', async () => {
+    const logs = [];
+    const fromUrl = await resolveNewOptions(
       'shop',
       { yes: true, staging: 'https://evil.example/path' },
-      { isTTY: false, argv: ['--yes'], exec: async () => ({ stdout: '' }) }
+      { isTTY: false, argv: ['--yes'], exec: async () => ({ stdout: '' }), log: (m) => logs.push(String(m)) }
     );
-    expect(badStaging.ok).toBe(false);
-    const badProd = await resolveNewOptions(
+    expect(fromUrl.ok).toBe(true);
+    expect(fromUrl.config.origin).toBe('evil.example');
+    expect(logs.some((l) => l === 'Using evil.example')).toBe(true);
+    const httpProd = await resolveNewOptions(
       'shop',
       { yes: true, production: 'http://example.com' },
       { isTTY: false, argv: ['--yes'], exec: async () => ({ stdout: '' }) }
     );
-    expect(badProd.ok).toBe(false);
-    const withPort = await resolveNewOptions(
+    expect(httpProd.ok).toBe(true);
+    expect(httpProd.config.production).toBe('example.com');
+    const defaultPort = await resolveNewOptions(
       'shop',
       { yes: true, staging: 'example.com:443' },
       { isTTY: false, argv: ['--yes'], exec: async () => ({ stdout: '' }) }
     );
-    expect(withPort.ok).toBe(false);
+    expect(defaultPort.ok).toBe(true);
+    expect(defaultPort.config.origin).toBe('example.com');
+    const badPort = await resolveNewOptions(
+      'shop',
+      { yes: true, staging: 'example.com:8443' },
+      { isTTY: false, argv: ['--yes'], exec: async () => ({ stdout: '' }) }
+    );
+    expect(badPort.ok).toBe(false);
   });
 
   it.each([

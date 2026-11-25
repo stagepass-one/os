@@ -6,7 +6,7 @@ Package: `@stagepass/cli`. System commands require macOS (platform guard in `src
 
 Typical order: `setup` → `start` → `link`, then `stagepass build` / `stagepass watch` / `stagepass dev` (then `reload` / `unlink` / `stop` as needed). Most commands support `-v, --verbose`.
 
-This reference describes the published CLI **2.6.0** (npm `latest`). Generated snippet exact pins use loader **2.5.1**.
+This reference describes the published CLI **2.6.0** (npm `latest`). Unreleased CLI changes default generated Stagepass CDN snippets to the major aliases `loader@2` / `modules@2` (no `data-stagepass-version`); documented exact-pin examples stay on loader **2.5.1** / modules **2.2.2**.
 
 ## Commands
 
@@ -34,7 +34,7 @@ If the domain argument is omitted, commands default to the current folder name. 
 
 ## Declared modules, AI guide and types
 
-Projects created or upgraded with CLI 2.2+ declare in `stagepass.json` which modules their Webflow site loads: `"modules": []`, `["cookies"]` (any of `inject`, `cookies`, `maintenance`) or `["all"]`. `stagepass new --site <host>` and `stagepass upgrade` read this from the live site (public https GET, no cookies; regex on `<script src>` only, nothing executed): jsDelivr `/dist/…` and package-root URLs, existing unpkg URLs (still recognised so current sites keep working), plus self-hosted Stagepass build files (path or `data-stagepass-*` hint). Self-hosted matches report `cdn: "self"` for display only — `upgrade` does not rewrite those tags to CDN. Recommended new embeds and generated snippets use `https://cdn.stagepass.one` (see [getting-started](./getting-started.md)); pass `--cdn jsdelivr` from `stagepass new` to print the jsDelivr alternative. This CLI behavior ships in CLI 2.6.0. See [Live site detection](../packages/cli/README.md#live-site-detection). They ask you to confirm. `stagepass doctor` warns when the declared list and the live site differ.
+Projects created or upgraded with CLI 2.2+ declare in `stagepass.json` which modules their Webflow site loads: `"modules": []`, `["cookies"]` (any of `inject`, `cookies`, `maintenance`) or `["all"]`. `stagepass new --site <host>` and `stagepass upgrade` read this from the live site (public https GET, no cookies; regex on `<script src>` only, nothing executed): jsDelivr `/dist/…` and package-root URLs, existing unpkg URLs (still recognised so current sites keep working), plus self-hosted Stagepass build files (path or `data-stagepass-*` hint). Self-hosted matches report `cdn: "self"` for display only — `upgrade` does not rewrite those tags to CDN. Recommended new embeds and generated snippets use `https://cdn.stagepass.one/loader@2` (major alias, no `data-stagepass-version`; see [getting-started](./getting-started.md)). Pass `--cdn jsdelivr` from `stagepass new` for the jsDelivr alternative; the wizard does not ask. jsDelivr remains documented here and on the website. See [Live site detection](../packages/cli/README.md#live-site-detection). They ask you to confirm. `stagepass doctor` warns when the declared list and the live site differ.
 
 From that list the CLI generates `AGENTS.stagepass.md` (the `sp` API reference, plus the rest of the Stagepass guide), a short pointer in `AGENTS.md` (between `<!-- stagepass:begin -->` and `<!-- stagepass:end -->`), and `compilerOptions.types`. `.cursor/rules/stagepass.mdc` (`alwaysApply: true`, `@AGENTS.stagepass.md`) is written only when the project already has a `.cursor/` directory or you pass `--cursor-rule`.
 
@@ -53,7 +53,7 @@ Published `@stagepass/loader` 2.5.0 `global.d.ts` augments `Window` with `sp` an
 
 | Option | Behaviour |
 | --- | --- |
-| `--origin <host>` | Allow CORS from this live hostname (**repeatable**). Accepts `example.com`, `www.example.com`, `*.example.com`, or `https://example.com` (bare hostname or `https://` only; no path/port). Merges into the stored list. |
+| `--origin <host>` | Allow CORS from this live hostname (**repeatable**). Accepts a bare hostname, `*.example.com`, or a pasted `http(s)://` URL (path, query, fragment, and `:443` are stripped to the hostname; other ports are rejected). Merges into the stored list. |
 | `--remove-origin <host>` | Remove a stored CORS hostname (**repeatable**; same validation). |
 | `--allow-all-origins` | Set `Access-Control-Allow-Origin: *` (prints a warning). Prefer `--origin`. |
 | `--no-allow-all-origins` | Disable allow-all and use the origin allowlist. |
@@ -80,9 +80,9 @@ Scaffold a lean Webflow project (TypeScript + SCSS by default). Flags for every 
 | `--modules` / `--no-modules` | Include `@stagepass/modules` (npm, types) |
 | `--site <host>` | Live Webflow site to detect loaded modules from (https); also sets `origin` in `stagepass.json`. Must match `--staging` when both are set. |
 | `--site-modules <list>` | Modules the site loads: `none`, `all`, or `inject,cookies,maintenance` |
-| `--staging <domain>` | Staging hostname written to `stagepass.json` as `origin` (wizard suggests `<name>.webflow.io`) |
-| `--production <domain>` | Optional production hostname written to `stagepass.json`. Skipping production prints a short `stagepass link --origin` hint. |
-| `--cdn stagepass\|jsdelivr` | CDN for Webflow snippets, stored as `cdn` in `stagepass.json`. Default `stagepass`. Upgrade uses that value; missing or unknown values use the Stagepass CDN. |
+| `--staging <domain>` | Staging hostname written to `stagepass.json` as `origin` (wizard suggests `<name>.webflow.io`). Pasted `http(s)://` URLs are normalised to the hostname. |
+| `--production <domain>` | Optional production hostname written to `stagepass.json`. Pasted URLs are normalised the same way. A concrete host also fills footer snippet `data-src` / `data-href`. Skipping production prints a short `stagepass link --origin` hint. |
+| `--cdn stagepass\|jsdelivr` | CDN for Webflow snippets, stored as `cdn` in `stagepass.json`. Default `stagepass` (major alias `@2` on `cdn.stagepass.one`). The wizard does not ask; pass `--cdn jsdelivr` to opt in. Upgrade reads the stored value. |
 | `--php` / `--no-php` | Enable the PHP boilerplate (`api/` + `.php/config.php`, `php_fastcgi` on link). Default off. The interactive wizard always asks this unless the flag is set. Existing linked projects without a `php` setting keep PHP on (non-breaking). |
 | `--php-examples` / `--no-php-examples` | Deprecated. Sample actions (`ping`, `contact`) ship with `--php` under `api/actions/`. Accepted, no extra files. |
 | `--link` / `--no-link` | Run `stagepass link` after scaffolding (macOS only; interactive ask unless `--link` / `--yes`) |
@@ -172,7 +172,7 @@ See [Troubleshooting](./troubleshooting.md#editor-reports-cannot-find-name-sp).
 
 `stagepass new` and `stagepass upgrade` write `AGENTS.stagepass.md` in the project root. The CLI owns that file. The header is `<!-- stagepass:managed cli=<version> sha256=<hash of the body> -->`, then one sentence: generated by `@stagepass/cli`, do not edit by hand, `stagepass upgrade` rewrites it, and your own notes belong in `AGENTS.md`.
 
-The body follows the CLI version and `stagepass.json`: declared `modules`, `php`, `lang`, `origin`, `production`, and `cdn` (Stagepass CDN when `cdn` is missing). The loader URL in that file uses the same exact pin as the Webflow snippets. It contains the feature set, safe rules, the local workflow (`stagepass build`, `stagepass watch`, `stagepass dev`, `stagepass start`, `stagepass link`; npm scripts only as a fallback), editor types, the loader API, and only the declared modules. When `"php": true` and `api/lib/` exists, it also documents the PHP request flow, helper signatures, and the three-step action recipe. When `"php": true` but `api/lib/` is missing, the PHP section tells the agent to ask the user to add the boilerplate with the CLI, and upgrade prints a hint. Upgrade does not copy `api/`.
+The body follows the CLI version and `stagepass.json`: declared `modules`, `php`, `lang`, `origin`, `production`, and `cdn` (Stagepass CDN when `cdn` is missing). Default loader URLs use the major alias `@2`; the guide also documents an exact-pin example. It contains the feature set, safe rules, the local workflow (`stagepass build`, `stagepass watch`, `stagepass dev`, `stagepass start`, `stagepass link`; npm scripts only as a fallback), editor types, the loader API, and only the declared modules. When `"php": true` and `api/lib/` exists, it also documents the PHP request flow, helper signatures, and the three-step action recipe. When `"php": true` but `api/lib/` is missing, the PHP section tells the agent to ask the user to add the boilerplate with the CLI, and upgrade prints a hint. Upgrade does not copy `api/`.
 
 `AGENTS.md` is yours. The CLI only maintains the short block between `<!-- stagepass:begin -->` and `<!-- stagepass:end -->`. Text outside the markers stays byte for byte. Older scaffold sections that used to live outside the block (feature set, safe rules) are not deleted. Upgrade names them so you can remove them. A missing `AGENTS.md` is created with a title and that short block.
 

@@ -102,7 +102,7 @@ describe('projects', () => {
         'app.sp',
         {
           root: '/Users/dev/Sites/app',
-          originsToRemove: ['http://attacker.example'],
+          originsToRemove: ['http://attacker.example:8443'],
         },
         projectsPath
       )

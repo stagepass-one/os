@@ -3,9 +3,12 @@ import { promisify } from 'node:util';
 import {
   SNIPPET_LOADER_VERSION,
   SNIPPET_MODULES_VERSION,
+  SNIPPET_MAJOR_PIN,
   defaultSnippetPins,
+  normalizeCdnChoice,
   stagepassPackageUrl,
 } from './cdn-base.js';
+import { validateOriginEntry } from './origins.js';
 import { validateProjectName } from './project-name.js';
 import { expandModules, normalizeModulesList } from './project-modules.js';
 
@@ -52,6 +55,20 @@ export function sanitizeSnippetToken(value) {
     );
   }
   return token;
+}
+
+/**
+ * Concrete production hostname for footer asset URLs (no wildcard).
+ * Accepts a stored hostname or a pasted URL (same rules as #168).
+ * @param {unknown} production
+ * @returns {string | null}
+ */
+function concreteProductionHost(production) {
+  if (production == null || String(production) === '') return null;
+  // Config may have incidental spaces; CLI flags are validated raw elsewhere.
+  const check = validateOriginEntry(String(production).trim());
+  if (!check.ok || check.value.startsWith('*.')) return null;
+  return check.value;
 }
 
 /**
@@ -106,11 +123,26 @@ function safeBranch(branch) {
 
 /**
  * @param {object} [options]
+ * @param {unknown} [options.production]
  * @param {unknown} [options.gitRemote]
  * @param {unknown} [options.gitBranch]
  * @param {unknown} [options.projectName]
  */
 function describeProjectAssets(options = {}) {
+  const productionHost = concreteProductionHost(options.production);
+  if (productionHost) {
+    const base = `https://${productionHost}`;
+    const name = validateProjectName(options.projectName);
+    const segment = name.ok ? name.name : 'project';
+    return {
+      kind: 'production',
+      js: `${base}/js/main.js`,
+      css: `${base}/css/styles.css`,
+      exampleJs: `${base}/${segment}/main.a1b2c3d4.js`,
+      hint: 'After stagepass build, check dist/manifest.json for hashed file names.',
+    };
+  }
+
   const parsed = parseGitHubRemote(options.gitRemote);
   if (!parsed) {
     const name = validateProjectName(options.projectName);
@@ -130,7 +162,7 @@ function describeProjectAssets(options = {}) {
     js: `${base}/dist/main.js`,
     css: `${base}/dist/styles.css`,
     exampleJs: `${base}/dist/main.a1b2c3d4.js`,
-    hint: 'jsDelivr only serves public repos. A tag is a better production pin than a branch. After npm run build, commit the dist folder, or check dist/manifest.json for hashed file names.',
+    hint: 'jsDelivr only serves public repos. A tag is a better production pin than a branch. After stagepass build, commit the dist folder, or check dist/manifest.json for hashed file names.',
   };
 }
 
@@ -139,16 +171,23 @@ function describeProjectAssets(options = {}) {
  * @returns {string}
  */
 function footerFor(assets) {
-  const notes =
-    assets.kind === 'github'
-      ? [
-          '<!-- jsDelivr only serves public repos. A tag is a better production pin than a branch. -->',
-          '<!-- After `npm run build`, commit the dist folder, or check dist/manifest.json for hashed file names. -->',
-        ]
-      : [
-          '<!-- Replace YOUR-PRODUCTION-URL with the host that serves your production assets. -->',
-          '<!-- After `npm run build`, check dist/manifest.json for hashed file names. -->',
-        ];
+  /** @type {string[]} */
+  let notes;
+  if (assets.kind === 'github') {
+    notes = [
+      '<!-- jsDelivr only serves public repos. A tag is a better production pin than a branch. -->',
+      '<!-- After `stagepass build`, commit the dist folder, or check dist/manifest.json for hashed file names. -->',
+    ];
+  } else if (assets.kind === 'production') {
+    notes = [
+      '<!-- After `stagepass build`, check dist/manifest.json for hashed file names. -->',
+    ];
+  } else {
+    notes = [
+      '<!-- Replace YOUR-PRODUCTION-URL with the host that serves your production assets. -->',
+      '<!-- After `stagepass build`, check dist/manifest.json for hashed file names. -->',
+    ];
+  }
   return [
     ...notes,
     '<script',
@@ -167,23 +206,27 @@ function footerFor(assets) {
 
 /**
  * Build recommended Webflow Custom Code snippets.
- * Default host is the Stagepass CDN with exact pins. Pass `cdn: 'jsdelivr'`
- * for the jsDelivr major pin `@2` alternative.
+ * Default host is the Stagepass CDN with the major alias `@2` and no
+ * `data-stagepass-version`. Pass `cdn: 'jsdelivr'` for the jsDelivr major pin.
+ * Pass `exact: true` (with `version`) for a documented Stagepass CDN exact pin.
  *
  * @param {object} options
- * @param {string} options.version Exact package version for the Stagepass CDN URL pin and data-stagepass-version
+ * @param {string} [options.version] Exact semver for jsDelivr `data-stagepass-version` or Stagepass exact pins
+ * @param {boolean} [options.exact] Stagepass CDN exact pin (full path + data-stagepass-version)
  * @param {boolean} [options.modules] Legacy: true = inject + cookies tags
  * @param {string[]} [options.moduleList] Declared modules (wins over `modules`)
+ * @param {string} [options.production] Concrete production host for footer asset URLs
  * @param {string} [options.gitRemote] `origin` URL. GitHub https/ssh becomes a jsDelivr `/gh/` URL.
  * @param {string} [options.gitBranch] Current branch. Missing or unsafe values use `main`.
  * @param {string} [options.projectName] Used in the README placeholder example path.
  * @param {string} [options.cdn] `stagepass` (default) or `jsdelivr`
  * @returns {{ head: string, footer: string, majorPin: string, exactPin: string, assetExampleUrl: string, assetHint: string, cdn: string }}
  */
-export function buildWebflowSnippets(options) {
+export function buildWebflowSnippets(options = {}) {
+  const exact = options.exact === true;
   // Fail closed on an explicit unresolvable version (empty or invalid).
-  // Omitted version falls back to the bundled exact pin, used for both the
-  // Stagepass CDN URL and data-stagepass-version (single source of truth).
+  // Omitted version falls back to the bundled exact-pin literal (jsDelivr
+  // data-stagepass-version / documented exact pins only).
   const version = sanitizeSnippetVersion(
     options.version == null ? SNIPPET_LOADER_VERSION : options.version
   );
@@ -196,23 +239,32 @@ export function buildWebflowSnippets(options) {
   } else if (options.modules === true) {
     moduleFiles = ['inject', 'cookies'];
   }
-  const pins = defaultSnippetPins(options.cdn, { loaderVersion: version });
+  const cdnHost = normalizeCdnChoice(options.cdn) || 'stagepass';
+  const pins = defaultSnippetPins(cdnHost, {
+    loaderVersion: version,
+    exact: exact && cdnHost === 'stagepass',
+  });
   const loaderPin = pins.loaderPin;
   const modulesPin = pins.modulesPin;
   const exactPin = `@${version}`;
   const assets = describeProjectAssets(options);
+  const useVersionAttr = pins.cdn === 'jsdelivr' || (exact && pins.cdn === 'stagepass');
   const loaderComment =
     pins.cdn === 'jsdelivr'
       ? '<!-- Stagepass loader (jsDelivr major pin @2; optional exact pin shown in data-stagepass-version) -->'
-      : '<!-- Stagepass loader (Stagepass CDN, exact pin) -->';
+      : exact
+        ? '<!-- Stagepass loader (Stagepass CDN, exact pin) -->'
+        : '<!-- Stagepass loader (Stagepass CDN, major pin @2) -->';
 
   const loaderLines = [
     loaderComment,
     '<script',
     `  src="${stagepassPackageUrl('loader', loaderPin, 'loader.min.js', { cdn: pins.cdn })}"`,
-    `  data-stagepass-version="${version}"`,
-    '></script>',
   ];
+  if (useVersionAttr) {
+    loaderLines.push(`  data-stagepass-version="${version}"`);
+  }
+  loaderLines.push('></script>');
 
   for (const id of moduleFiles) {
     loaderLines.push(
@@ -223,7 +275,7 @@ export function buildWebflowSnippets(options) {
   return {
     head: loaderLines.join('\n'),
     footer: footerFor(assets),
-    majorPin: loaderPin,
+    majorPin: SNIPPET_MAJOR_PIN,
     exactPin,
     assetExampleUrl: assets.exampleJs,
     assetHint: assets.hint,
@@ -237,6 +289,8 @@ export function buildWebflowSnippets(options) {
  * @param {object} [options]
  * @param {string} [options.version]
  * @param {string[]} [options.moduleList] Declared modules (`[]` when none)
+ * @param {string} [options.cdn]
+ * @param {boolean} [options.exact]
  */
 export function buildOfficialHeadSnippets(options = {}) {
   const raw = Array.isArray(options.moduleList) ? options.moduleList : [];
@@ -246,6 +300,7 @@ export function buildOfficialHeadSnippets(options = {}) {
     version: options.version,
     moduleList: expandModules(parsed.modules),
     cdn: options.cdn,
+    exact: options.exact,
   });
 }
 
@@ -288,16 +343,12 @@ async function gitText(cwd, args, exec) {
 }
 
 function logExactPin(log, snippets) {
-  // exactPin is `@` plus the sanitized version already used in the head snippet.
+  // Only when the user opted into jsDelivr: optional exact-pin note.
+  // Default Stagepass CDN output does not advertise the jsDelivr alternative.
+  if (snippets?.cdn !== 'jsdelivr') return;
   const loader = String(snippets?.exactPin || '').replace(/^@/, '') || SNIPPET_LOADER_VERSION;
-  if (snippets?.cdn === 'jsdelivr') {
-    log(
-      `\nOptional exact pin example (instead of @2): loader @${loader}, modules @${SNIPPET_MODULES_VERSION}.`
-    );
-    return;
-  }
   log(
-    `\njsDelivr alternative (major pin @2): <script src="https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js" data-stagepass-version="${loader}"></script>`
+    `\nOptional exact pin example (instead of @2): loader @${loader}, modules @${SNIPPET_MODULES_VERSION}.`
   );
 }
 

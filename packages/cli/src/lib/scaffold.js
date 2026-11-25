@@ -204,6 +204,7 @@ export async function planScaffoldFiles(options, deps = {}) {
   const snippets = buildWebflowSnippets({
     version,
     moduleList: siteModules,
+    production: options.production,
     gitRemote: options.git ? options.remote || '' : '',
     gitBranch: options.git ? 'main' : '',
     projectName: options.name,

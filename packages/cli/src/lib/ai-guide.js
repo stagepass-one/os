@@ -91,7 +91,7 @@ if (sp.can('localStorage')) localStorage.setItem('seen', '1');
 const MODULE_SECTIONS = {
   inject: `### Module: inject (\`sp.inject\`)
 
-Loads extra scripts and stylesheets. Webflow script tag: \`https://cdn.stagepass.one/modules@${SNIPPET_MODULES_VERSION}/inject.min.js\` after \`loader.min.js\`.
+Loads extra scripts and stylesheets. Webflow script tag: \`https://cdn.stagepass.one/modules@2/inject.min.js\` after the loader (exact pin optional: \`modules@${SNIPPET_MODULES_VERSION}/inject.min.js\`).
 
 \`\`\`ts
 if (sp.inject) {
@@ -105,7 +105,7 @@ Argument: one options object, an array of them, or \`{ scripts?, styles? }\`. Re
 Options: \`src\` (required), \`type\` (\`'script' \\| 'style'\`), \`stagepass\` (default true: during a session the file is served from the local project via \`localPath\`/\`path\` or the file name; \`false\` always uses \`src\`), \`localPath\`, \`path\`, \`id\`, \`async\`, \`defer\`, \`version\` (adds \`?v=\` in production), \`attributes\`, \`position\` (\`'head' \\| 'body-start' \\| 'body-end' \\| { target, action: 'before' \\| 'after' }\`), \`integrity\`, \`crossorigin\`, \`nonce\`, \`allowedHosts\`.`,
   cookies: `### Module: cookies (\`sp.cookies\`, alias \`sp.cookie\`, plus \`sp.consent\`)
 
-Webflow script tag: \`https://cdn.stagepass.one/modules@${SNIPPET_MODULES_VERSION}/cookies.min.js\` after \`loader.min.js\`.
+Webflow script tag: \`https://cdn.stagepass.one/modules@2/cookies.min.js\` after the loader (exact pin optional: \`modules@${SNIPPET_MODULES_VERSION}/cookies.min.js\`).
 
 \`\`\`ts
 if (sp.cookies) {
@@ -126,7 +126,7 @@ Write options: \`days\`, \`maxAge\`, \`path\`, \`domain\`, \`secure\`, \`sameSit
 Consent: \`allows(category)\`, \`set(fn)\`, \`update()\`.`,
   maintenance: `### Module: maintenance (\`sp.maintenance\`)
 
-Webflow script tag: \`https://cdn.stagepass.one/modules@${SNIPPET_MODULES_VERSION}/maintenance.min.js\` after \`loader.min.js\` (optional attributes \`data-stagepass-maintenance="true"\`, \`data-stagepass-maintenance-title\`, \`data-stagepass-maintenance-text\`).
+Webflow script tag: \`https://cdn.stagepass.one/modules@2/maintenance.min.js\` after the loader (exact pin optional: \`modules@${SNIPPET_MODULES_VERSION}/maintenance.min.js\`; optional attributes \`data-stagepass-maintenance="true"\`, \`data-stagepass-maintenance-title\`, \`data-stagepass-maintenance-text\`).
 
 \`\`\`ts
 if (sp.maintenance && !sp.maintenance.isActive()) {
@@ -371,7 +371,10 @@ export function buildStagepassGuide(ctx) {
   const types = Array.isArray(ctx.types) ? ctx.types : ['@stagepass/loader'];
   const loaderVersion = ctx.loaderVersion || SNIPPET_LOADER_VERSION;
   const cdnChoice = normalizeCdnChoice(ctx.cdn) || 'stagepass';
-  const officialLoaderUrl = stagepassPackageUrl(
+  const officialLoaderUrl = stagepassPackageUrl('loader', '@2', 'loader.min.js', {
+    cdn: 'stagepass',
+  });
+  const officialExactLoaderUrl = stagepassPackageUrl(
     'loader',
     `@${loaderVersion}`,
     'loader.min.js',
@@ -385,8 +388,8 @@ export function buildStagepassGuide(ctx) {
   );
   const cdnLine =
     cdnChoice === 'jsdelivr'
-      ? `- **CDN:** This project uses jsDelivr (major pin \`@2\`), for example \`${jsdelivrLoaderUrl}\`. The Stagepass CDN exact pin is the alternative (\`${officialLoaderUrl}\`).`
-      : `- **CDN:** Stagepass CDN first, exact pin, full file path, no \`/dist/\` segment, for example \`${officialLoaderUrl}\`. jsDelivr is the alternative (\`${jsdelivrLoaderUrl}\`).`;
+      ? `- **CDN:** This project uses jsDelivr (major pin \`@2\`), for example \`${jsdelivrLoaderUrl}\`. The Stagepass CDN major alias is the alternative (\`${officialLoaderUrl}\`); exact pin example: \`${officialExactLoaderUrl}\`.`
+      : `- **CDN:** Stagepass CDN first, major alias \`@2\` (no \`data-stagepass-version\`), for example \`${officialLoaderUrl}\`. Exact pin when needed: \`${officialExactLoaderUrl}\`. jsDelivr is the documented alternative (\`${jsdelivrLoaderUrl}\`).`;
   const parts = [
     `# Stagepass (${name})`,
     '',
@@ -419,7 +422,7 @@ export function buildStagepassGuide(ctx) {
     '1. **No secrets in frontend code.** API keys, tokens, and passwords must never ship in JS or CSS served to the browser.',
     '2. **No `innerHTML` with untrusted data.** Prefer `textContent`, `createElement`, or trusted, sanitized markup.',
     '3. **No `eval` or string-built scripts** with user or CMS input.',
-    '4. **Pin versions** for production embeds (exact pin on the Stagepass CDN, or jsDelivr major pin `@2`).',
+    '4. **Default embeds use the major alias `@2`.** Exact pin on the Stagepass CDN (full path + optional `data-stagepass-version`) when a specific build must load.',
     '5. **Review before publishing.** Read the diff for asset tags, CORS origins, and Webflow Custom Code.',
     '6. **Keep Stagepass tags intact.** Use `data-src` / `data-href` plus `data-stagepass` (and optional `data-stagepass-path`) so production visitors keep production URLs.',
     '7. **Do not commit secrets.** Keep `.env*` out of git.',

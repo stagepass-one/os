@@ -81,7 +81,11 @@ export function parseOriginFlag(raw, label) {
   if (!check.ok) {
     return { ok: false, error: `Invalid --${label}: ${check.error}` };
   }
-  return { ok: true, value: check.value };
+  return {
+    ok: true,
+    value: check.value,
+    ...(check.normalised ? { normalised: true } : {}),
+  };
 }
 
 /**
@@ -221,11 +225,13 @@ export async function resolveNewOptions(nameArg, options = {}, deps = {}) {
       };
     }
     origin = check.value;
+    if (check.normalised) log(`Using ${check.value}`);
   }
   if (options.production != null && String(options.production) !== '') {
     const check = parseOriginFlag(String(options.production), 'production');
     if (!check.ok) return check;
     production = check.value;
+    if (check.normalised) log(`Using ${check.value}`);
   } else if (
     Object.prototype.hasOwnProperty.call(options, 'production') &&
     (options.production === '' || options.production == null) &&
@@ -292,6 +298,7 @@ export async function resolveNewOptions(nameArg, options = {}, deps = {}) {
           const check = validateOriginEntry(raw);
           if (check.ok) {
             origin = check.value;
+            if (check.normalised) log(`Using ${check.value}`);
             if (isBroadWebflowWildcard(origin)) {
               log(
                 chalk.yellow(
@@ -310,6 +317,7 @@ export async function resolveNewOptions(nameArg, options = {}, deps = {}) {
           const check = validateOriginEntry(raw);
           if (check.ok) {
             production = check.value;
+            if (check.normalised) log(`Using ${check.value}`);
             if (isBroadWebflowWildcard(production)) {
               log(
                 chalk.yellow(
@@ -341,32 +349,7 @@ export async function resolveNewOptions(nameArg, options = {}, deps = {}) {
           else log(chalk.yellow(`  ${parsed.error}`));
         }
       }
-      if (!cdn) {
-        // Bound retries: an invalid answer (for example "n" after y/N prompts)
-        // must not spin forever and grow memory.
-        const maxAttempts = 5;
-        let attempts = 0;
-        while (!cdn) {
-          const raw = await ask(
-            rl,
-            'CDN for Webflow snippets (stagepass | jsdelivr)',
-            'stagepass'
-          );
-          const parsed = normalizeCdnChoice(raw);
-          if (parsed) {
-            cdn = parsed;
-            break;
-          }
-          attempts += 1;
-          log(chalk.yellow('  Use stagepass (cdn.stagepass.one) or jsdelivr.'));
-          if (attempts >= maxAttempts) {
-            return {
-              ok: false,
-              error: 'Invalid --cdn: use stagepass (default) or jsdelivr.',
-            };
-          }
-        }
-      }
+      // CDN defaults to Stagepass (cdn.stagepass.one). Use --cdn jsdelivr to opt in.
       if (php === undefined) {
         php = await askYesNo(rl, 'Enable PHP for this project?', false);
       }
@@ -877,7 +860,7 @@ export async function createNew(nameArg, options = {}, deps = {}) {
   if (!config.install) {
     log(`  cd ${path.relative(cwd, targetDir) || '.'} && npm install`);
   }
-  log('  npm run build');
+  log('  stagepass build');
   if (config.origin || config.production) {
     log(`  stagepass link ${config.name}`);
   } else {
@@ -893,6 +876,7 @@ export async function createNew(nameArg, options = {}, deps = {}) {
   const snippets = buildWebflowSnippets({
     version: config.loaderVersion,
     moduleList: config.siteModules,
+    production: config.production,
     gitRemote: config.git ? config.remote || '' : '',
     gitBranch: config.git ? 'main' : '',
     projectName: config.name,
