@@ -1,0 +1,54 @@
+name: Upgrade matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'CLI under test: local (pack this checkout) or latest (npm @stagepass/cli@latest)'
+        required: true
+        default: local
+        type: choice
+        options:
+          - local
+          - latest
+  pull_request:
+    paths:
+      - 'packages/cli/src/**'
+      - 'packages/cli/package.json'
+      - 'scripts/upgrade-matrix.sh'
+      - 'scripts/upgrade-matrix/**'
+      - '.github/workflows/upgrade-matrix.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade-matrix:
+    # Fork PRs must not run on the self-hosted runner
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, cerebro]
+    timeout-minutes: 90
+
+    steps:
+      - name: Require Docker daemon
+        run: |
+          set -euo pipefail
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "docker is not on PATH on this runner." >&2
+            exit 1
+          fi
+          if ! docker info >/dev/null 2>&1; then
+            echo "docker info failed: the Docker daemon is unreachable." >&2
+            echo "On the os self-hosted runner container, the Docker socket may not be mounted." >&2
+            echo "Mount the host Docker socket (or run where Docker is available) and retry." >&2
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run upgrade fixture matrix
+        run: |
+          set -euo pipefail
+          TARGET="${{ github.event_name == 'workflow_dispatch' && inputs.target || 'local' }}"
+          scripts/upgrade-matrix.sh --target "$TARGET"
