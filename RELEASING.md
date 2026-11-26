@@ -114,6 +114,7 @@ scripts/upgrade-matrix.sh --target latest
 ```
 
 That installs `@stagepass/cli@latest` from the registry instead of packing this checkout.
+
 4. Tag and push:
 
 ```bash
