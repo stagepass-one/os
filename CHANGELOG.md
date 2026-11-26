@@ -13,6 +13,7 @@ Packages are versioned independently: `@stagepass/cli`, `@stagepass/loader`, `@s
 
 ### Repo
 
+- Upgrade fixture matrix (`scripts/upgrade-matrix.sh`, Docker, fixtures CLI `2.2.7` / `2.3.0` / `2.4.0`): required before every CLI release on `[self-hosted, cerebro]` (`RELEASING.md`, workflow `upgrade-matrix.yml`) (#143).
 - Docs: default Stagepass CDN embeds are the major aliases `https://cdn.stagepass.one/loader@2` and `https://cdn.stagepass.one/modules@2` (no `data-stagepass-version`). Exact pins remain documented. jsDelivr remains the documented alternative. Loader 2.5.2 resolves session chunks from short CDN folder URLs (#161, #163).
 
 ### `@stagepass/modules`
