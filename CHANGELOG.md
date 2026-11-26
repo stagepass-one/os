@@ -35,9 +35,9 @@ Packages are versioned independently: `@stagepass/cli`, `@stagepass/loader`, `@s
 
 ## `@stagepass/cli`
 
-### [2.7.0] - 2026-11-25
+### [2.7.0] - 2026-11-26
 
-Minor release on top of 2.6.0 (changed defaults). Released together with `@stagepass/loader` 2.5.2 and `@stagepass/modules` 2.2.3 (separate packages, own tags). Published on npm as `@stagepass/cli@2.7.0`. **Fill after `npm stage approve`:** date and time Europe/Berlin, source tag `cli-v2.7.0` (`GITHEAD`), npm package shasum `TODO`, integrity `TODO`, tarball sha256 `TODO`. npm dist-tag `latest` is `@stagepass/cli@2.7.0`.
+Minor release on top of 2.6.0 (changed defaults). Released together with `@stagepass/loader` 2.5.2 and `@stagepass/modules` 2.2.3 (separate packages, own tags). Published on npm as `@stagepass/cli@2.7.0` on 26 November 2026 at 07:04 Europe/Berlin. Source tag `cli-v2.7.0` (`5f31e0c`). npm package shasum `0f2463b378587c5c25e7ef27dafae09a58824806`, integrity `sha512-ewtJ4Sj/Mp+OGmj43eEmr5tkKi3PMY5ri6UcJaaNbMeXsu6YnzAe08bV0N6Lfx5vGumdBKBEglYYbM/xRatduQ==`, tarball sha256 `915788dada1f03175a67b6a9728e59c1dd6d4d7f7b8fa6992be197c77953e28b`. npm dist-tag `latest` is `@stagepass/cli@2.7.0`.
 
 #### Changed
 
@@ -462,9 +462,9 @@ Stable release of the 2.0 line (same behaviour as `2.0.0-beta.1`).
 
 ## `@stagepass/loader`
 
-### [2.5.2] - 2026-11-25
+### [2.5.2] - 2026-11-26
 
-Loader patch on top of 2.5.1. Released together with `@stagepass/modules` 2.2.3 and `@stagepass/cli` 2.7.0 (separate packages, own tags). Published on npm as `@stagepass/loader@2.5.2`. **Fill after `npm stage approve`:** date and time Europe/Berlin, source tag `loader-v2.5.2` (`GITHEAD`), npm package shasum `TODO`, integrity `TODO`, tarball sha256 `TODO`, `loader.min.js` sha256 `TODO` (BYTES bytes). npm dist-tag `latest` is `@stagepass/loader@2.5.2`.
+Loader patch on top of 2.5.1. Released together with `@stagepass/modules` 2.2.3 and `@stagepass/cli` 2.7.0 (separate packages, own tags). Published on npm as `@stagepass/loader@2.5.2` on 26 November 2026 at 07:04 Europe/Berlin. Source tag `loader-v2.5.2` (`5f31e0c`). npm package shasum `912aab782bc325f81839e6141007528b5771bba3`, integrity `sha512-TwMPXT/+g4L+NpIba+qaGoscbMRw32Xufs5Lwv1xgJVfa5LNcEKyGQhUdtyykDficqcGDjfQyFELmkmEXwGtrw==`, tarball sha256 `daa0be34dcdade0412854484073ea332dfd0a5d386253c8f85eb62650482dd75`. `loader.min.js` sha256 `9ee4ca69ab9322ecbdba1e8e86e9c129a73809c69afbb038ebbd785feb546062` (15175 bytes). npm dist-tag `latest` is `@stagepass/loader@2.5.2`.
 
 #### Fixed
 
@@ -790,9 +790,9 @@ Stable release of the 2.0 line (same behaviour as `2.0.0-beta.1`).
 
 ## `@stagepass/modules`
 
-### [2.2.3] - 2026-11-25
+### [2.2.3] - 2026-11-26
 
-Modules patch on top of 2.2.2. Released together with `@stagepass/loader` 2.5.2 and `@stagepass/cli` 2.7.0 (separate packages, own tags). Published on npm as `@stagepass/modules@2.2.3`. **Fill after `npm stage approve`:** date and time Europe/Berlin, source tag `modules-v2.2.3` (`GITHEAD`), npm package shasum `TODO`, integrity `TODO`, tarball sha256 `TODO`. npm dist-tag `latest` is `@stagepass/modules@2.2.3`.
+Modules patch on top of 2.2.2. Released together with `@stagepass/loader` 2.5.2 and `@stagepass/cli` 2.7.0 (separate packages, own tags). Published on npm as `@stagepass/modules@2.2.3` on 26 November 2026 at 07:04 Europe/Berlin. Source tag `modules-v2.2.3` (`5f31e0c`). npm package shasum `7c25fd46c2d52d099ce18b3fb8ba20583b46575e`, integrity `sha512-/abddF3LohrKvruatkKAb1X1ZkdfT2txlF7GiQZnUKtSEhQz5FEib8gFfgpyocgtNEKXkTQ9Hakr3YD0yWZA1w==`, tarball sha256 `b5731cadd7684481a1e142914453d9c12aee0afc9f624412f2c568566b46818d`. npm dist-tag `latest` is `@stagepass/modules@2.2.3`.
 
 #### Fixed
 
