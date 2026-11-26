@@ -180,15 +180,15 @@ describe('check-published-versions', () => {
     const constants = pins.filter((pin) => pin.file === 'packages/cli/src/lib/cdn-base.js');
     expect(constants).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ package: 'loader', version: '2.5.1' }),
-        expect.objectContaining({ package: 'modules', version: '2.2.2' }),
+        expect.objectContaining({ package: 'loader', version: '2.5.2' }),
+        expect.objectContaining({ package: 'modules', version: '2.2.3' }),
       ])
     );
     const loaderDoc = pins.filter((pin) => pin.file === 'docs/loader.md');
     expect(loaderDoc.map((pin) => pin.version)).not.toContain('2.4.0');
     expect(loaderDoc).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ package: 'loader', version: '2.5.1' }),
+        expect.objectContaining({ package: 'loader', version: '2.5.2' }),
       ])
     );
   });
