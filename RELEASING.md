@@ -37,7 +37,7 @@ Update `CHANGELOG.md` and docs as needed (maintainer duty, not a workflow gate).
 
 ### 1b. Tag and push
 
-Before pushing a release tag, run `npm run release:dry-run -- <ref>` from the repo root (for example `npm run release:dry-run -- loader-v2.5.1`). It applies the same single-package selection as the release workflow, prints the package directory and dist-tag that would be staged (`latest` for a stable version, `next` for a prerelease), and runs `npm pack --dry-run` in that directory. It does not publish or stage the package.
+Before pushing a release tag, run `npm run release:dry-run -- <ref>` from the repo root (for example `npm run release:dry-run -- loader-v2.5.1`). It applies the same single-package selection as the release workflow, prints the package directory and dist-tag that would be staged (`latest` for a stable version, `next` for a prerelease), and runs `npm pack --dry-run` in that directory. It does not publish or stage the package. For a CLI release, also run the upgrade fixture matrix before tagging (see section 2 and checklist item 11): `npm run upgrade-matrix` (Docker; self-hosted `[self-hosted, cerebro]` only).
 
 ```bash
 git tag modules-v2.1.0-beta.1
@@ -99,7 +99,23 @@ Verify the package yourself before tagging. A prior prerelease is optional.
 
 1. Bump **only the package you are releasing** to its final version (e.g. modules `2.2.2`). Do not bump the other packages unless they are themselves part of this intended release, and even then each package still gets its own tag and its own workflow run.
 2. Update `CHANGELOG.md`. Commit.
-3. Tag and push:
+3. **Required before every CLI release:** run the upgrade fixture matrix against this checkout. It builds a clean `node:22` Docker image (no host `node_modules` bind mounts), scaffolds realistic projects with published CLI `2.2.7` / `2.3.0` / `2.4.0`, upgrades each with the packed CLI from the current tree, and asserts exit codes, idempotency, published `@stagepass/*` ranges, managed files (`AGENTS.stagepass.md`, snippets, CDN defaults), preservation of user edits, and a post-upgrade `npm run build`. Needs network access to the npm registry. Runs only on our self-hosted runner `[self-hosted, cerebro]` (workflow `.github/workflows/upgrade-matrix.yml`, or the same host locally with Docker). Not on GitHub-hosted runners.
+
+```bash
+npm run upgrade-matrix
+# equivalent: scripts/upgrade-matrix.sh
+# single fixture: scripts/upgrade-matrix.sh --only 2.3.0
+```
+
+Expected output ends with a table (`fixture`, `lang`, `result`) and `All fixtures passed.` Exit non-zero on any FAIL. After the CLI package is approved on npm, run the post-publish variant once:
+
+```bash
+scripts/upgrade-matrix.sh --target latest
+```
+
+That installs `@stagepass/cli@latest` from the registry instead of packing this checkout.
+
+4. Tag and push:
 
 ```bash
 git tag modules-v2.2.0
@@ -148,5 +164,6 @@ Sites that pin `@1` stay on 1.x. Sites that pin a major such as `@2` on jsDelivr
 8. After the latest publish: Run scripts/mac-update-check.sh latest on a Mac with the previous version installed and attach the protocol.
 9. For a CLI release, check `packages/cli/src/lib/ai-guide.js` (the generated `AGENTS.stagepass.md`) against the published loader, modules, and CLI: new or changed APIs, flags, and PHP helpers. Do this alongside the README and `docs/`.
 10. After every published `@stagepass/loader` or `@stagepass/modules` release, update `SNIPPET_LOADER_VERSION` and/or `SNIPPET_MODULES_VERSION` in `packages/cli/src/lib/cdn-base.js`, and the tests that assert those literals, so CLI snippet exact pins match the newly published versions. Then run `npm run check:published-versions` (same command as `node scripts/check-published-versions.mjs`). The release workflow runs that gate before `npm stage publish` and fails if an exact pin is missing from `npm view <pkg> versions`. A published exact pin that is not the `latest` dist-tag prints a warning and does not fail the gate. Major pins `@2` and `@2.x` do not warn. Do not use `package-versions.js` / `LOADER_VERSION` for those pins. That file tracks the monorepo and can be ahead of npm.
+11. For every CLI release: before tagging, run `npm run upgrade-matrix` (or `scripts/upgrade-matrix.sh`) on `[self-hosted, cerebro]` with Docker. Confirm the matrix table is all PASS for fixtures `2.2.7`, `2.3.0`, and `2.4.0`. After npm approval of the new CLI, run `scripts/upgrade-matrix.sh --target latest` once. See section 2 step 3.
 
 The gate treats these as exact pins: the `SNIPPET_*` literals, `data-stagepass-version` when the value is `x.y.z` or `x.y.z-prerelease`, `@stagepass/loader@x.y.z` and `@stagepass/modules@x.y.z` in docs and templates, and `loader @x.y.z` / `modules @x.y.z` on a line that says "exact pin". Major pins `@2` and `@2.x` are allowed. Prose that is not a pin (for example "ships since 2.4.0") is ignored. `CHANGELOG.md`, tests, `dist/`, and `node_modules/` are not scanned. Offline runs set `STAGEPASS_PUBLISHED_VERSIONS` to a JSON file `{ "loader": ["2.4.0", "2.5.0"], "modules": ["2.2.2"], "latest": { "loader": "2.5.0", "modules": "2.2.2" } }` and do not call the registry. PR Tests do not run the live registry check, so a registry blip does not fail a pull request. The CLI test suite covers the gate with that mock.

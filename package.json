@@ -8,6 +8,7 @@
       "build": "npm run build --workspaces",
       "test": "npm test --workspaces",
       "check:published-versions": "node scripts/check-published-versions.mjs",
-      "release:dry-run": "node scripts/release-dry-run.mjs"
+      "release:dry-run": "node scripts/release-dry-run.mjs",
+      "upgrade-matrix": "bash scripts/upgrade-matrix.sh"
     }
   }

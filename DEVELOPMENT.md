@@ -131,6 +131,14 @@ Packed smoke test (what npm actually ships: packs cli, loader and modules, scaff
 docker run --rm -v "$PWD":/w -w /w node:22-bookworm-slim node scripts/test-cli-packed.mjs
 ```
 
+Upgrade fixture matrix (Docker only; issue #143): scaffolds projects with published CLI `2.2.7` / `2.3.0` / `2.4.0`, upgrades with the packed CLI from this checkout (or `--target latest`), and asserts upgrade behaviour. Needs Docker and npm registry access. Required before every CLI release (see `RELEASING.md`). Workflow: `.github/workflows/upgrade-matrix.yml` on `[self-hosted, cerebro]` only.
+
+```bash
+npm run upgrade-matrix
+scripts/upgrade-matrix.sh --only 2.3.0
+scripts/upgrade-matrix.sh --target latest
+```
+
 Templates under `packages/cli/templates/` must not start with a dot (npm pack drops `.gitignore`); name them without the dot and map them in `scaffoldTemplateMap`.
 
 Also verify on Node 24 (`node:24-bookworm-slim`) to match CI (matrix: 22.x and 24.x). See `RELEASING.md` for the tag → `npm stage` flow. Loader v2 behaviour notes: session expiry, version cache busting, and no global console mute. See `MIGRATION.md`.
