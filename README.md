@@ -38,7 +38,7 @@ In Webflow head code (default Stagepass CDN major alias; exact pin optional):
 ></script>
 ```
 
-jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.1/loader.min.js`.
+jsDelivr is the documented alternative: `https://cdn.jsdelivr.net/npm/@stagepass/loader@2/dist/loader.min.js`. Exact pin example: `https://cdn.stagepass.one/loader@2.5.2/loader.min.js`.
 
 Open `https://your-site/?stagepass=demo.sp`. Details: [docs/getting-started.md](docs/getting-started.md).
 
@@ -50,7 +50,7 @@ Open `https://your-site/?stagepass=demo.sp`. Details: [docs/getting-started.md](
 | [CLI](docs/cli.md) | Commands, flags, AGENTS.stagepass.md |
 | [Loader](docs/loader.md) | Version pinning, attributes, Runtime API, security |
 | [Modules](docs/modules.md) | inject, cookies, maintenance |
-| [Live reload](docs/dev.md) | Guide for `stagepass dev` / `watch` (running check #40); client chunk `live.min.js` ships since published loader 2.4.0 (npm `latest` is 2.5.1) |
+| [Live reload](docs/dev.md) | Guide for `stagepass dev` / `watch` (running check #40); client chunk `live.min.js` ships since published loader 2.4.0 (npm `latest` is 2.5.2) |
 | [Migration](docs/migration.md) | 1.x → 2.x ([full guide](MIGRATION.md)) |
 | [Troubleshooting](docs/troubleshooting.md) | Common fixes |
 

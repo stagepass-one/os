@@ -24,8 +24,8 @@ Exact pin when a specific build must load (optional `data-stagepass-version` for
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
-  data-stagepass-version="2.5.1"
+  src="https://cdn.stagepass.one/loader@2.5.2/loader.min.js"
+  data-stagepass-version="2.5.2"
 ></script>
 ```
 
@@ -37,7 +37,7 @@ Acceptance for `live.min.js` / live reload is **scoped localhost only**. It is n
 
 A `localhost` / `localhost:<port>` session still reports `sp.env() === 'production'` (unchanged since 2.3.1 / 2.3.3). Only an active `*.sp` swap session is `local`. That is expected behaviour, not a live-reload failure.
 
-`live.min.js` ships since loader **2.4.0** (lazy-loaded during an active swap session; not in **2.3.3**). `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.1`) when a specific build must load.
+`live.min.js` ships since loader **2.4.0** (lazy-loaded during an active swap session; not in **2.3.3**). `@2` is a major range alias, not the npm `latest` tag; after a publish the CDN can briefly serve the previous 2.x build. Pin an exact version (e.g. `@2.5.2`) when a specific build must load.
 
 See [MIGRATION.md](../../MIGRATION.md) for breaking changes from 1.x.
 
@@ -129,11 +129,11 @@ Opt-in with `data-stagepass-live-src="true"` on the loader tag (loader **2.4.0**
 <script
   data-stagepass
   data-src="https://cdn.example.com/js/forms-embed.js?foo=1#_section"
-  data-stagepass-v="2.5.1"
+  data-stagepass-v="2.5.2"
   data-stagepass-nocache
 ></script>
 <!-- production URL becomes:
-     https://cdn.example.com/js/forms-embed.js?foo=1&v=2.5.1&_cb=<timestamp>#_section -->
+     https://cdn.example.com/js/forms-embed.js?foo=1&v=2.5.2&_cb=<timestamp>#_section -->
 ```
 
 - Boolean attribute: present (any value, including empty) or `="true"` turns it on; `="false"` turns it off (same as omitting it).

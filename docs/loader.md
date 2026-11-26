@@ -6,7 +6,7 @@ Package: `@stagepass/loader`. Standalone browser script (no CLI dependency). In 
 
 Stagepass follows strict semver: **no breaking changes within v2**; breaking changes only land in a new major (v3). The default Stagepass CDN embed is the major alias (`/loader@2`, `/modules@2`). Those aliases are short-lived redirects (`max-age=300`), not immutable files. Pin an **exact** version when a specific build must load.
 
-**Published loader and live reload:** `live.min.js` ships since published loader **2.4.0** (`loader-v2.4.0` / `cddec72`). npm `latest` is **2.5.1** until 2.5.2 is published. Published **2.3.3** does **not** include live reload (`https://cdn.stagepass.one/loader@2.3.3/live.min.js` 404s; version scope, not a packaging bug).
+**Published loader and live reload:** `live.min.js` ships since published loader **2.4.0** (`loader-v2.4.0` / `cddec72`). npm `latest` is **2.5.2**. Published **2.3.3** does **not** include live reload (`https://cdn.stagepass.one/loader@2.3.3/live.min.js` 404s; version scope, not a packaging bug).
 
 ### Recommended (Stagepass CDN, major alias)
 
@@ -15,19 +15,19 @@ Stagepass follows strict semver: **no breaking changes within v2**; breaking cha
 <script src="https://cdn.stagepass.one/modules@2/inject.min.js"></script>
 ```
 
-Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from the loader's folder URL, including short aliases such as `/loader@2` and `/loader@2.5.1`. The CDN also 302-redirects those three paths at the CDN root to `/loader@2/<file>` as a compatibility shim. Alternatively set `data-stagepass-flag-base`.
+Loader **2.5.2** and later resolves session chunks (`flag.min.js`, `flag-card.min.js`, `live.min.js`) from the loader's folder URL, including short aliases such as `/loader@2` and `/loader@2.5.2`. The CDN also 302-redirects those three paths at the CDN root to `/loader@2/<file>` as a compatibility shim. Alternatively set `data-stagepass-flag-base`.
 
 ### Exact pin (optional)
 
 ```html
 <script
-  src="https://cdn.stagepass.one/loader@2.5.1/loader.min.js"
-  data-stagepass-version="2.5.1"
+  src="https://cdn.stagepass.one/loader@2.5.2/loader.min.js"
+  data-stagepass-version="2.5.2"
 ></script>
-<script src="https://cdn.stagepass.one/modules@2.2.2/inject.min.js"></script>
+<script src="https://cdn.stagepass.one/modules@2.2.3/inject.min.js"></script>
 ```
 
-Use the **full file path** for an exact pin (this host has no `/dist/` segment). `data-stagepass-version` is optional; it only sets the production `?v=` default for tagged assets. Until 2.5.2 is on npm, exact-pin examples stay on the last published loader (2.5.1).
+Use the **full file path** for an exact pin (this host has no `/dist/` segment). `data-stagepass-version` is optional; it only sets the production `?v=` default for tagged assets. Exact-pin examples use loader 2.5.2 and modules 2.2.3.
 
 
 jsDelivr is the documented alternative. Use the full `/dist/` path there:
@@ -62,7 +62,7 @@ Why `@2`:
 
 * **Compatible updates**: minor/patch releases within v2 stay backward compatible under strict semver.
 * **One intentional major bump**: breaking changes require a new major (v3) and a deliberate URL change.
-* **Exact pin when needed**: use `@2.5.1/loader.min.js` (or any exact published version) for maximum control; prereleases are never resolved by `@2` (pin the exact beta, e.g. `@2.3.0-beta.4`).
+* **Exact pin when needed**: use `@2.5.2/loader.min.js` (or any exact published version) for maximum control; prereleases are never resolved by `@2` (pin the exact beta, e.g. `@2.3.0-beta.4`).
 
 ## Markup
 
@@ -270,7 +270,7 @@ sp.resolveLocalUrl('js/app.js');   // e.g. 'https://my-project.sp/js/app.js?_cb=
 sp.resolveLocalUrl('/lib.js');     // leading slash is normalized
 ```
 
-While a local session is active, swapped assets use a single `?_cb=<timestamp>` per page load. In production, use `data-stagepass-version` (loader) or `data-stagepass-v` (asset) to append `?v=<version>`. For an individual asset that must bypass caching permanently in production (for every visitor, every view — e.g. a script embedding forms via iframes), add `data-stagepass-nocache` to that element; it sets exactly one `?_cb=<timestamp>` after any `?v=`, replacing a `_cb` already present in the URL. It has no effect while swapping locally (the asset already resolves to the local `.sp` URL with its own `_cb` stamp) and does not apply to `data-stagepass-live-src="true"` assets. `data-stagepass-cachebust` stays legacy and separate. `data-stagepass-nocache` is available in published loader **2.5.0** and later (npm `latest` is **2.5.1`). Older loaders ignore the attribute.
+While a local session is active, swapped assets use a single `?_cb=<timestamp>` per page load. In production, use `data-stagepass-version` (loader) or `data-stagepass-v` (asset) to append `?v=<version>`. For an individual asset that must bypass caching permanently in production (for every visitor, every view — e.g. a script embedding forms via iframes), add `data-stagepass-nocache` to that element; it sets exactly one `?_cb=<timestamp>` after any `?v=`, replacing a `_cb` already present in the URL. It has no effect while swapping locally (the asset already resolves to the local `.sp` URL with its own `_cb` stamp) and does not apply to `data-stagepass-live-src="true"` assets. `data-stagepass-cachebust` stays legacy and separate. `data-stagepass-nocache` is available in published loader **2.5.0** and later (npm `latest` is **2.5.2`). Older loaders ignore the attribute.
 
 ```html
 <script
