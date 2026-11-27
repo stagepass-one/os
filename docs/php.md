@@ -2,7 +2,7 @@
 
 Live page: [https://stagepass.one/docs/php/](https://stagepass.one/docs/php/)
 
-This file is the source outline for that site page. It describes published `@stagepass/cli` 2.6.0 (npm `latest`, tarball sha256 `fe10d0e115b17bb5811e1148ff909c1ced4c71842eb15ef35748556d61e78e1d`, commit `3d8527c`). Published 2.4.1 is the security patch (tarball sha256 `ab7462d0235a7ede563fe1150430b4fa3a49e1eb62b433a1349d3e7889231153`, commit `23d0814`). Published 2.4.0 tarball sha256 is `d569578e3e5ba2df5352caf085fd808136af68f40a7e4f9fd9cd824a45f6ba34`, commit `9886c4a`. `@stagepass/loader` types referenced here are 2.5.1.
+This file is the source outline for that site page. It describes published `@stagepass/cli` 2.7.0 (npm `latest`, tarball sha256 `915788dada1f03175a67b6a9728e59c1dd6d4d7f7b8fa6992be197c77953e28b`, commit `5f31e0c`). Published 2.4.1 is the security patch (tarball sha256 `ab7462d0235a7ede563fe1150430b4fa3a49e1eb62b433a1349d3e7889231153`, commit `23d0814`). Published 2.4.0 tarball sha256 is `d569578e3e5ba2df5352caf085fd808136af68f40a7e4f9fd9cd824a45f6ba34`, commit `9886c4a`. `@stagepass/loader` types referenced here are 2.5.2.
 
 ## 1. What this is
 
@@ -55,7 +55,7 @@ This file is the source outline for that site page. It describes published `@sta
 ## 7. Hosting hidden files
 
 - After `stagepass build`, upload `dist/`. That folder is the web root. It contains `api/` and `.php/config.php`. `.php/` is therefore public on Apache and nginx unless hidden paths are denied.
-- Since 2.4.1 the starter comments state that the document root is the folder that contains `api/`. CLI 2.4.0 and older still say the config sits "outside the public root" and "outside the public api/ directory". Those phrases describe the layout relative to `api/`, not a second directory outside the web root. [quYArF43](https://trello.com/c/quYArF43).
+- Since 2.4.1 the starter comments state that the document root is the folder that contains `api/`. CLI 2.4.0 and older still say the config sits "outside the public root" and "outside the public api/ directory". Those phrases describe the layout relative to `api/`, not a second directory outside the web root.
 - Caddy already returns 404 for any path segment that starts with `.` (`/.env`, `/.php/`, `/api/.env`).
 - CLI 2.4.0 and older do not ship an Apache or nginx deny rule. Add one on that host. Since 2.4.1 the PHP scaffold ships the Apache `.htaccess` below. nginx still needs the snippet on the host (nginx does not read `.htaccess`).
 - Prefer real environment variables so a `.env` file is not required in the web root. `load_config()` reads the project-root `.env` and `.php/.env`. It never reads `api/.env`. `stagepass build` does not copy those files into `dist/`. It does copy `.php/config.php`.
@@ -165,7 +165,7 @@ form.addEventListener('submit', async (event) => {
 - File-based rate limit per IP and action under `.php/rate-limit/`. A limit hit is HTTP 429, JSend `fail`, and `Retry-After` set to the window.
 - If the rate-limit directory cannot be created, a file cannot be opened, `flock` fails, or the limiter throws, the failure is logged with `error_log`, including a failed `flock`. The request is refused: HTTP 503, JSend `error`, a short message, `Retry-After: 60`, no internals, unless `APP_ENV` is `local`, `development`, or `dev` (trimmed, any case). Empty, unset, and every other value stay closed. Those three names allow the request and write the same log line.
 - `client_ip()` uses `REMOTE_ADDR` unless that address is in `TRUSTED_PROXIES` (comma-separated IPv4 or IPv6 addresses and CIDRs). Only then is `TRUSTED_PROXY_HEADER` read: `x-forwarded-for` (default) or `forwarded` (RFC 7239 `for=`). Hops are walked from the right, at most the rightmost 32. Trusted proxy addresses are skipped. The first other address is the client, and anything to its left is ignored. If every examined hop is trusted, the leftmost of those is used. An invalid hop in the trusted-proxy suffix falls back to `REMOTE_ADDR` and is logged once without the raw header. Invalid allowlist entries are ignored and logged.
-- This behaviour ships in projects created with CLI 2.5.0. CLI 2.4.1 and older stay fail-open and use only `REMOTE_ADDR`. `stagepass upgrade` does not change `api/` or `.php/config.php`. Copy `api/lib/security.php`, `api/lib/request.php`, `api/lib/config.php`, `.php/config.php`, and `api/action.php` from a new scaffold, or re-scaffold. [sgt7wKlT](https://trello.com/c/sgt7wKlT).
+- This behaviour ships in projects created with CLI 2.5.0. CLI 2.4.1 and older stay fail-open and use only `REMOTE_ADDR`. `stagepass upgrade` does not change `api/` or `.php/config.php`. Copy `api/lib/security.php`, `api/lib/request.php`, `api/lib/config.php`, `.php/config.php`, and `api/action.php` from a new scaffold, or re-scaffold.
 - Display of errors is off; exception messages never go to the client
 
 ## 14. Existing projects
