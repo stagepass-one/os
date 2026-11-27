@@ -189,7 +189,7 @@ After `stagepass build` (or your own hashed build), copy the file digest into th
 <script
   data-stagepass
   src="https://cdn.example.com/js/app.abc123.js"
-  integrity="sha256-<base64-from-manifest>"
+  integrity="sha384-<base64-from-manifest>"
   crossorigin="anonymous"
 ></script>
 ```
