@@ -116,6 +116,10 @@ stagepass/
 
 ## Testing Changes
 
+Docker based Vitest helpers must not bind-mount checkout or `os.tmpdir()` paths into nested containers.
+The os self-hosted runner uses docker-outside-of-docker, so the host daemon cannot see paths inside the runner; prefer stdin (`tar` / `cat`) or a build context.
+`scripts/php-fpm-integration.sh` still uses bind mounts and is local-only (not CI).
+
 Prefer running the full test run in Docker (host `node_modules` may be macOS-native):
 
 ```bash
