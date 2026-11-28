@@ -118,29 +118,93 @@ const url = local || phpHost + path;
 
 ## 10. Native Webflow forms
 
-- `contact.php` is a JSON or form POST action. It validates and does not send mail.
-- There is no shipped pattern that takes over a native Webflow form (no `preventDefault` helper, no module).
-- A submit listener that calls `preventDefault` and `fetch`es the PHP host is enough. Forms are site-specific, PHP is optional, and modules are front-end only, so a helper in `@stagepass/modules` is not clearly justified yet.
+- Keep the form in Webflow. Its success and error blocks stay as designed.
+- In Webflow, give each field the name your action reads (name, email, message for contact) and add the custom attribute `data-sp-action` with the action name (for example contact) on the form element.
+- Add the script below to the site (a tagged `data-stagepass` script in a Stagepass project, or in the head). It sends the fields as a form POST to `api/action.php`.
+- Why capture: Webflow's form script listens for submit on document after the event bubbles up and ignores `preventDefault()`. A submit listener on the form that only calls `preventDefault()` still sends the entry to Webflow as well. This listener runs in the capture phase and stops the event, so Webflow never sees it.
 
 ```js
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const url =
-    (sp.vars.isLocal && sp.resolveLocalUrl('/api/action.php')) ||
-    'https://php.example.com/api/action.php';
-  const result = await fetch(url, {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'contact',
-      name: form.elements.name.value,
-      email: form.elements.email.value,
-      message: form.elements.message.value,
-      website: '',
-    }),
-  }).then((response) => response.json());
-});
+/**
+ * Opt-in Stagepass submit for native Webflow forms (div.w-form).
+ * Mark a form with data-sp-action="<action>". Reuses .w-form-done / .w-form-fail.
+ */
+(function () {
+  const PHP_URL = 'https://php.example.com/api/action.php';
+
+  document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.closest('.w-form')) return;
+    const actionName = form.getAttribute('data-sp-action');
+    if (!actionName) return;
+
+    // Capture + stopImmediatePropagation: Webflow's jQuery handler is
+    // delegated on document (bubble) and does not check defaultPrevented.
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (form.dataset.spBusy === '1') return;
+    form.dataset.spBusy = '1';
+
+    const wrap = form.closest('.w-form');
+    const done = wrap.querySelector('.w-form-done');
+    const fail = wrap.querySelector('.w-form-fail');
+    const failChild = fail?.firstElementChild;
+    if (failChild && failChild.dataset.spOrig == null) failChild.dataset.spOrig = failChild.textContent || '';
+    const orig = failChild?.dataset.spOrig || 'Oops! Something went wrong while submitting the form.';
+    form.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+
+    const btn = form.querySelector('input[type="submit"], button[type="submit"]');
+    const label = btn ? (btn.value || btn.textContent) : '';
+    const wait = btn?.getAttribute('data-wait');
+    if (btn) {
+      btn.disabled = true;
+      if (wait) { if (btn.tagName === 'INPUT') btn.value = wait; else btn.textContent = wait; }
+    }
+    const restore = () => { delete form.dataset.spBusy; if (btn) { btn.disabled = false; if (btn.tagName === 'INPUT') btn.value = label; else btn.textContent = label; } };
+    const showFail = (text) => {
+      if (failChild) failChild.textContent = text;
+      if (fail) { fail.style.display = 'block'; fail.focus(); }
+      if (done) done.style.display = 'none'; form.style.display = '';
+    };
+
+    const body = new FormData(form);
+    body.append('action', actionName);
+    const url = (window.sp?.vars?.isLocal && sp.resolveLocalUrl?.('/api/action.php')) || PHP_URL;
+
+    fetch(url, { method: 'POST', headers: { Accept: 'application/json' }, body })
+      .then(async (res) => {
+        let json = null;
+        try { json = JSON.parse(await res.text()); } catch (_) {}
+        restore();
+        if (!json) return showFail(orig);
+        if (res.ok && json.status === 'success') {
+          form.style.display = 'none';
+          if (done) { done.style.display = 'block'; done.focus(); }
+          if (fail) fail.style.display = 'none';
+          return;
+        }
+        if (json.status === 'fail' && json.data && typeof json.data === 'object') {
+          const msgs = Object.keys(json.data).map((key) => {
+            form.querySelector(`[name="${CSS.escape(key)}"]`)?.setAttribute('aria-invalid', 'true');
+            return typeof json.data[key] === 'string' ? json.data[key] : '';
+          }).filter(Boolean);
+          return showFail(msgs.length ? msgs.join(' ') : orig);
+        }
+        showFail(orig);
+      })
+      .catch(() => { restore(); showFail(orig); });
+  }, true);
+})();
 ```
+
+- success (HTTP 2xx, status success): form hidden, `.w-form-done` shown.
+- fail (for example 422 validation): `.w-form-fail` shows the messages from `data`, matching fields get `aria-invalid="true"`.
+- error, a response that is not JSON, or no network: `.w-form-fail` with its original Webflow text.
+- While sending, the button shows Webflow's waiting text (`data-wait`) and is disabled; a second submit is ignored.
+- During an active `.sp` session the script posts to the local `api/action.php` through `sp.resolveLocalUrl`, otherwise to `PHP_URL`. Put the Webflow staging host and the live domain on `ALLOWED_ORIGINS`.
+
+Webflow's redirect setting, file upload fields and Webflow's spam protection are not handled by this script. Load it early (in the head) so it is active before a visitor can submit; if it does not load, Webflow handles the submit as before and the entry lands in Webflow's form submissions. A helper in `@stagepass/modules` is not part of this release: forms are site-specific, PHP is optional, and modules are front-end only.
+
+Tested on 28 November 2026 with Webflow's published form script (jQuery 3.5.1 and webflow.js from a published Webflow site) in a headless browser against PHP 8.2: success, validation fail, HTTP 500, network error and double submit. The success path also ran through the loader, in production and in a `.sp` session. No request reached Webflow's form endpoint.
 
 ## 11. Validation and errors
 
